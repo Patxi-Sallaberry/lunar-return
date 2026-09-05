@@ -21,11 +21,13 @@ docs/report/*.fdb_latexmk
 docs/report/*.synctex.gz
 docs/report/main.pdf
 
-# Build instructions and working notes for coding agents. These are how the
-# repository was made, not what it is, so they stay out of the public tree.
+# Build instructions and working notes. These are how the repository was made,
+# not what it is, so they stay out of the public tree. They are kept on disk
+# under notes/ rather than deleted: BUILD_REPORT.md and AUDIT_REPORT.md are the
+# published record of a run, and that is what a reader needs.
 CLAUDE.md
-notes/AGENTS.local.md
-notes/*.local.md
+notes/
+PASS*_STATUS.md
 SPEC_*.md
 PROMPT_*.txt
 LANCER_*.md
