@@ -19,7 +19,8 @@ clc;
 close all force;
 
 here = fileparts(mfilename('fullpath'));
-addpath(genpath(here));
+addpath(fullfile(here, 'lib', 'util'));     % repo_genpath lives here
+addpath(repo_genpath(here));
 
 C = mission_constants();
 rng(C.rngSeed);

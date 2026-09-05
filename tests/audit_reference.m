@@ -23,7 +23,9 @@ function ok = audit_reference(C)
 
 if nargin < 1 || isempty(C)
     here = fileparts(mfilename('fullpath'));
-    addpath(genpath(fileparts(here)));
+    root = fileparts(here);
+    addpath(fullfile(root, 'lib', 'util'));
+    addpath(repo_genpath(root));
     C = mission_constants();
 end
 

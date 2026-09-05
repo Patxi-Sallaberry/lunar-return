@@ -35,6 +35,6 @@ Every figure is re-derived independently by an audit script: 60 PASS, 1 WARN,
 0 FAIL. The one remaining discrepancy is documented, not tuned away.
 
 29-page PDF report, 20 figures, 89 s showreel:
-https://github.com/<user>/lunar-return-rendezvous
+https://github.com/Patxi-Sallaberry/lunar-return-rendezvous
 
 #Aerospace #MATLAB #OrbitalMechanics #SpaceRobotics

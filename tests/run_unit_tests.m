@@ -8,7 +8,9 @@ function ok = run_unit_tests()
 %   to run before a commit.
 
 here = fileparts(mfilename('fullpath'));
-addpath(genpath(fileparts(here)));
+root = fileparts(here);
+addpath(fullfile(root, 'lib', 'util'));
+addpath(repo_genpath(root));
 
 C = mission_constants();
 
