@@ -58,6 +58,18 @@ fprintf('  per-leg |dV| = [%s] m/s\n', strtrim(sprintf('%.4f ', Dk.dV_each)));
 fprintf('  total %.4f m/s   port residuals: %.3e m, %.3e m/s\n', ...
         Dk.dV_total, Dk.err_pos, Dk.err_vel);
 
+% ------------------------------------------------------------ Monte Carlo ---
+% The headline above is one draw. This samples the same error law 20 more
+% times, state-transition-matrix only, on a private random stream so that the
+% official rng(42) result is untouched whether or not this runs.
+MCH = mc_hold(C, 20);
+fprintf('Monte Carlo, %d draws of the same error law (STM only, private stream)\n', MCH.nDraw);
+fprintf('  hold dV   P05 %.3f   P50 %.3f   P95 %.3f m/s   (official draw %.3f)\n', ...
+        MCH.hold_p05, MCH.hold_p50, MCH.hold_p95, Hd.dV_total);
+fprintf('  drift     P50 %.1f km  P95 %.1f km\n', MCH.drift_p50, MCH.drift_p95);
+fprintf('  dock dV is draw-independent at %.4f m/s: the approach always starts\n', MCH.dock_p50);
+fprintf('  from the hold point, so it is geometry, not dispersion.\n');
+
 % ------------------------------------------------- nonlinear verification ---
 mu_m  = C.muMoon * 1e9;        % km^3/s^2 -> m^3/s^2
 R2_m  = C.R2 * 1e3;
@@ -213,6 +225,13 @@ M.dock_err_pos_m = Dk.err_pos;
 M.dock_err_vel_ms = Dk.err_vel;
 M.nl_final_sep_m = dErr(end);
 M.dt_tr_s = Hd.dt_tr;
+M.mc_nDraw     = MCH.nDraw;
+M.mc_hold_p05  = MCH.hold_p05;
+M.mc_hold_p50  = MCH.hold_p50;
+M.mc_hold_p95  = MCH.hold_p95;
+M.mc_drift_p50 = MCH.drift_p50;
+M.mc_drift_p95 = MCH.drift_p95;
+M.mc_dock_p50  = MCH.dock_p50;
 
 fprintf('Part 2 complete: 6 figures written.\n');
 end

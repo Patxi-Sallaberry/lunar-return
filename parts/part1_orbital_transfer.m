@@ -295,6 +295,10 @@ M.t_wait_s = P.t_wait;
 M.t_wait_h = P.t_wait_h;
 M.t_mission_h = P.t_mission_h;
 M.dtheta_H_deg = P.dtheta_H_deg;
+% NAMED integrator residual. Distinct from part 3's miss_LM_MS_twobody, which
+% is a vehicle-to-vehicle separation rather than a numerical-versus-analytical
+% difference. Quoting one for the other is the error this naming prevents.
+M.miss_num_vs_kepler = max(errLM);
 M.errLM_max_m = max(errLM);
 M.errMS_max_m = max(errMS);
 M.errRel_max_m = max(errRel);

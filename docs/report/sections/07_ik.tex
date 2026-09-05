@@ -47,8 +47,11 @@ update is
 
 with $\lambda = 0.05$, $\alpha = 0.4$ and
 $W = \mathrm{diag}(1,1,1,1,1,0.01)$. The damping keeps the update bounded near
-singular configurations; the weighting spends the available freedom on position
-and de-emphasises the one attitude component a five-joint wrist cannot serve.
+singular configurations. The weighting does one specific thing: the arm has five
+joints and the task has six degrees of freedom, so exactly \emph{one} direction
+in task space is unreachable, and the small entry de-weights that one attitude
+component so the solver spends its five degrees of freedom on position first.
+It is not a general de-emphasis of orientation.
 
 \subsection{A real singularity at the obvious seed}
 

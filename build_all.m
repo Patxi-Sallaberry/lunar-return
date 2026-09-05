@@ -1,7 +1,14 @@
-function metrics = build_all()
+function metrics = build_all(varargin)
 %BUILD_ALL  Run the entire lunar-return simulation and build the media package.
 %
-%   metrics = BUILD_ALL()
+%   metrics = BUILD_ALL()            physics, figures, audit. No video.
+%   metrics = BUILD_ALL('--video')   also render the eight clips and the reel
+%   metrics = BUILD_ALL('--verify')  tighten every tolerance and solver budget
+%
+%   Video is opt-in because the physics pass takes about 90 seconds and the
+%   render takes ten minutes. Nothing about the science needs the render, and
+%   the clips on disk are only invalidated by a change of relative-motion
+%   convention, which pass 4 deliberately did not make.
 %
 %   This is the orchestrator. `run_all` and `00_main` are one-line aliases;
 %   the real work lives here because MATLAB identifiers cannot start with a
@@ -22,7 +29,16 @@ here = fileparts(mfilename('fullpath'));
 addpath(fullfile(here, 'lib', 'util'));     % repo_genpath lives here
 addpath(repo_genpath(here));
 
+flags   = lower(string(varargin));
+wantVid = any(flags == "--video");
+wantVer = any(flags == "--verify");
+
 C = mission_constants();
+if wantVer
+    C.verify = true;
+    C = mission_constants_apply_verify(C);
+end
+C.makeVideo = wantVid;
 rng(C.rngSeed);
 
 for d = {C.resDir, C.figDir, C.vidDir, C.clipDir, C.frameDir}
@@ -41,8 +57,8 @@ fprintf('\n');
 fprintf('##############################################################\n');
 fprintf('#  LUNAR RETURN RENDEZVOUS  -  full build\n');
 fprintf('#  MATLAB %s on %s\n', version('-release'), computer);
-fprintf('#  video %d   fps %d   resolution %dx%d\n', ...
-        C.makeVideo, C.videoFps, C.videoRes(1), C.videoRes(2));
+fprintf('#  video %d (--video to render)   verify %d   fps %d   %dx%d\n', ...
+        C.makeVideo, C.verify, C.videoFps, C.videoRes(1), C.videoRes(2));
 fprintf('##############################################################\n');
 
 % ============================================================== PHYSICS =====

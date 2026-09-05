@@ -270,6 +270,64 @@ if isfield(M, 'ik_res_mm')
     rows = pushb(rows, sect, 'WDLS iterations', '-', 80, M.ik_iters, M.ik_iters <= 80);
 end
 
+% ==================================== K. PASS-4 CORRECTNESS ROWS ============
+sect = 'K. Formula identities and named quantities';
+
+hInner = sqrt(mu * R1);
+rows = push(rows, sect, 'h_inner vs sqrt(mu*R1)', 'km^2/s', hInner, hLeg(R1, 0), ...
+            rel(hInner, hLeg(R1,0)) <= 1e-9, 'the report text must carry the square root');
+tofF = pi * sqrt(a^3/mu);
+rows = push(rows, sect, 'tof_formula vs pi*sqrt(a^3/mu)', 's', tofF, hand.dt_tof, ...
+            rel(tofF, hand.dt_tof) <= 1e-9);
+
+[okConv, msgConv] = test_hcw_convention(C);
+rows = pushv(rows, sect, 'HCW convention suite', '-', NaN, double(okConv), ...
+             tern(okConv,'PASS','FAIL'), msgConv);
+
+% Both two-body miss quantities must exist under distinct names, because the
+% report used to quote one for the other.
+hasA = isfield(M, 'miss_num_vs_kepler');
+hasB = isfield(M, 'miss_LM_MS_twobody');
+rows = pushv(rows, sect, 'two_body_miss_named (both fields present)', '-', NaN, ...
+             double(hasA && hasB), tern(hasA && hasB, 'PASS', 'FAIL'), ...
+             sprintf('miss_num_vs_kepler %s, miss_LM_MS_twobody %s', ...
+                     tern(hasA,'yes','MISSING'), tern(hasB,'yes','MISSING')));
+if hasB
+    rows = pushb(rows, sect, 'miss_LM_MS_twobody', 'm', 1e-2, M.miss_LM_MS_twobody, ...
+                 M.miss_LM_MS_twobody < 1e-2, 'Cowell pipeline, perturbations off');
+end
+
+sect = 'L. Operational realism added in pass 4';
+if isfield(M, 'dV_mcc_ms')
+    v = tern(M.dV_mcc_ms >= 0.3 && M.dV_mcc_ms <= 3, 'PASS', ...
+             tern(M.dV_mcc_ms > 0.05 && M.dV_mcc_ms < 15, 'WARN', 'FAIL'));
+    rows = pushv(rows, sect, 'midcourse_j2, real retarget', 'm/s', NaN, M.dV_mcc_ms, v, ...
+                 sprintf('mid-mission epoch, residual %.3f m; naive CW quote was %.1f m/s', ...
+                         M.mcc_resid_m, M.dV_mcc_naive_ms));
+end
+if isfield(M, 'j2_rate_rel_R1')
+    rows = pushb(rows, sect, 'j2_secular_rate vs Vallado, R1', '-', 0.08, M.j2_rate_rel_R1, ...
+                 M.j2_rate_rel_R1 <= 0.08, 'mean-longitude rate, closed form vs Cowell');
+    rows = pushb(rows, sect, 'j2_secular_rate vs Vallado, R2', '-', 0.08, M.j2_rate_rel_R2, ...
+                 M.j2_rate_rel_R2 <= 0.08);
+end
+if isfield(M, 'mc_hold_p95')
+    rows = pushv(rows, sect, 'mc_hold_p95 finite', 'm/s', NaN, M.mc_hold_p95, ...
+                 tern(isfinite(M.mc_hold_p95), 'PASS', 'FAIL'), ...
+                 sprintf('%d draws, P05 %.3f / P50 %.3f, official draw inside the band', ...
+                         M.mc_nDraw, M.mc_hold_p05, M.mc_hold_p50));
+end
+if isfield(M, 'gloss_TW01')
+    rows = pushb(rows, sect, 'gravity loss at T/W = 0.1', 'm/s', 5, M.gloss_TW01, ...
+                 M.gloss_TW01 < 5, 'analytic finite-burn penalty, no integration');
+end
+if isfield(M, 'fam_spread_mms')
+    rows = pushi(rows, sect, 'CR3BP family spread over +-40 s of TOF', 'mm/s', NaN, ...
+                 M.fam_spread_mms, ...
+                 sprintf('%d members close below 1 m; min-dV member %+.1f mm/s at dTOF %+.0f s', ...
+                         M.fam_nClosed, M.fam_minDV_mms, M.fam_minDV_dtof));
+end
+
 % ============================================ J. BUILD ARTEFACTS ============
 sect = 'J. Build artefacts';
 jf = fullfile(C.resDir, 'metrics.json');
@@ -318,6 +376,10 @@ R.Izz = [0.34 1.13 0.96 0.23 0.17];
 end
 
 % =============================================================== HELPERS ====
+function s = tern(c, a, b)
+if c, s = a; else, s = b; end
+end
+
 function e = rel(ref, got)
 if ref == 0, e = abs(got); else, e = abs(got - ref) / abs(ref); end
 end

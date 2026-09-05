@@ -86,15 +86,20 @@ end
 
 function S = sizes(S)
 if strcmp(S.theme, 'light')
-    % Report figures are exported at 1600-1800 px wide and then scaled down to
-    % a 160 mm text block, so point sizes shrink by roughly a third on the
-    % page. Everything is enlarged here to compensate; a caption a reader has
-    % to zoom into is a caption that does not get read.
-    S.fsTitle = 30;
-    S.fsAxis  = 24;
-    S.fsHud   = 24;
-    S.fsSmall = 20;
-    S.lw      = 2.4;
+    % Report figures are exported wide and then scaled down to a 160 mm text
+    % block, so point sizes shrink by roughly a third on the page and the dark
+    % theme's 12 pt would land near 4 pt. They are enlarged here to compensate.
+    %
+    % Pass 2 over-corrected to 30/24/20 and the axes positions, which were laid
+    % out for the dark sizes, could no longer hold the text: titles collided and
+    % legends were clipped in the CR3BP and inverse-kinematics figures. These
+    % values land around 6-8 pt on the page, which is readable next to 11 pt
+    % body text without reflowing any layout.
+    S.fsTitle = 20;
+    S.fsAxis  = 18;
+    S.fsHud   = 18;
+    S.fsSmall = 16;
+    S.lw      = 2.2;
 else
     S.fsTitle = 20;
     S.fsAxis  = 14;

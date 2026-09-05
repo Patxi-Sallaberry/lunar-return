@@ -94,8 +94,38 @@ Time of flight [s] & \mTOF & \mCRtof & $\mCRtofShift$ \\
 \end{table}
 
 The shooter converges to a miss of $\mCRmiss\unit{m}$, and the total correction
-to the two-body design is $\mCRextra\unit{mm/s}$ with a time-of-flight shift of
-$\mCRtofShift\unit{s}$, i.e.\ $0.02\%$ of the coast.
+to the two-body design is $\mCRsigned\unit{mm/s}$ with a time-of-flight shift of
+$\mCRtofShift\unit{s}$, i.e.\ $0.02\%$ of the coast. Note the sign: at this
+member the three-body solution is marginally \emph{cheaper} than the two-body
+design, not more expensive.
+
+\subsection{A family, not a point}
+
+Quoting a single correction hides the structure of the problem. Because the
+zero-miss set is a curve, time of flight can be traded against delta-v at no
+cost in accuracy. Scanning $t_f$ over $\pm40\unit{s}$ and re-optimising the
+impulse at each point gives Table~\ref{tab:cr3bpfamily}: \mFamN{} of the scanned
+points close the rendezvous below one metre, and the total budget varies by
+$\mFamSpread\unit{mm/s}$ across the window.
+
+\begin{table}[htbp]
+\centering
+\caption{Members of the zero-miss family. All three close the rendezvous below
+one metre; they differ only in where they sit on the curve. An independent
+implementation reported a member near $\Delta t_f = +17\unit{s}$, which is the
+third row, so the two results are the same solution seen at different points of
+the same family rather than a disagreement.}
+\label{tab:cr3bpfamily}
+\small
+\begin{tabular}{lrrr}
+\toprule
+Member & $\Delta t_f$ [s] & $\Delta v$ vs two-body [mm/s] & Miss [m] \\
+\midrule
+Minimum $\dv$          & \mFamMinTof & \mFamMinDV & $< 1$ \\
+Reference-like $t_f$   & \mFamRefTof & \mFamRefDV & $< 1$ \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 The operational conclusion is worth stating plainly, because it justifies the
 whole two-body approach of the preceding sections: a $100$--$400\unit{km}$ lunar

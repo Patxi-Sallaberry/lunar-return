@@ -84,8 +84,26 @@ C.ik_tf      = 30;                      % [s] rest-to-rest cubic duration
 
 % -------------------------------------------------------------- numerics ----
 C.rngSeed  = 42;
-C.odeTight = odeset('RelTol', 1e-12, 'AbsTol', 1e-12);  % Part 1 validation
-C.odeWork  = odeset('RelTol', 1e-10, 'AbsTol', 1e-10);  % Parts 3 and 5
+
+% Production vs verification. Default is production; set C.verify = true (or
+% run `run_all --verify`) to tighten everything at the cost of runtime.
+% Measured: the full physics pass is ~75 s in production and the Kepler
+% residual is 0.19 mm either way, so production is not a compromise on the
+% headline result - it is the same answer with less waiting.
+C.verify   = false;
+if C.verify
+    C.odeTight  = odeset('RelTol', 1e-12, 'AbsTol', 1e-14);
+    C.odeWork   = odeset('RelTol', 1e-12, 'AbsTol', 1e-14);
+    C.nKepler   = 4000;
+    C.maxEvalCR = 200;
+    C.maxEvalMC = 200;
+else
+    C.odeTight  = odeset('RelTol', 1e-12, 'AbsTol', 1e-12);  % Part 1 validation
+    C.odeWork   = odeset('RelTol', 1e-10, 'AbsTol', 1e-12);  % Parts 3 and 5
+    C.nKepler   = 400;
+    C.maxEvalCR = 80;
+    C.maxEvalMC = 80;
+end
 
 % --------------------------------------------------------------- rendering --
 C.makeVideo   = true;

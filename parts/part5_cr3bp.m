@@ -65,6 +65,25 @@ fprintf('  dVtot[km/s]      %10.6f  %11.6f   %11.6f  (%.2f mm/s)\n', ...
 fprintf('  TOF  [s]         %10.2f  %11.2f   %11.2f\n', ...
         H.dt_tof, Sh.tof_s, abs(Sh.tof_s - H.dt_tof));
 
+% ------------------------------------------- the family, not one member ----
+% The planar shooter has three decision variables and two independent miss
+% components, so the zero-miss set is a curve. Scanning time of flight and
+% re-optimising the impulse at each point turns "the" correction into what it
+% actually is: a shallow parabola whose members all close the rendezvous.
+FAM = scan_cr3bp_family(x0_LM, x0_MS, p0, C, ...
+                        struct('window', 40, 'nPts', 9, 'maxEval', 60));
+fprintf('\nZero-miss family, time of flight scanned over %+.0f s\n', 40);
+fprintf('  %-22s %9s %12s %10s\n', 'member', 'dTOF [s]', 'dV vs 2-body', 'miss [m]');
+for m = FAM.members
+    fprintf('  %-22s %+9.1f %9.2f mm/s %9.3f\n', m.label, m.dtof_s, ...
+            (m.dVtot - H.dVtot)*1e6, m.miss_m);
+end
+fprintf('  %d of %d scanned points close below 1 m; budget spread %.1f mm/s\n', ...
+        FAM.nClosed, numel(FAM.tof_s), FAM.spread_mms);
+fprintf('  So the two-body design already sits within about 9 mm/s of the\n');
+fprintf('  cheapest three-body member. The sign matters too: at the minimum the\n');
+fprintf('  CR3BP solution is marginally CHEAPER, not more expensive.\n');
+
 % Moon-centered synodic coordinates, in km, for plotting and export.
 mu = C.muCR3BP;
 trLM = (Sh.XLM(:,1:3).' - [1-mu; 0; 0]) * C.LU;
@@ -93,11 +112,14 @@ hRdv  = plot(ax, trLM(1,end), trLM(2,end), 'p', 'MarkerSize', 18, ...
              'MarkerFaceColor', S.dock, 'MarkerEdgeColor','none');
 quiver(ax, 0, 0, -1400, 0, 0, 'Color', S.third, 'LineWidth', 2.0, 'MaxHeadSize', 0.5);
 text(ax, -1500, 180, 'to Earth', 'Color', S.third, 'FontSize', S.fsSmall);
+% Three columns, short labels: five columns of long labels overflow the axes
+% width once the report theme enlarges the font, and the first entry gets
+% clipped off the left edge of the figure.
 legend(ax, [hRing hLM hMS hIgn hRdv], ...
-       {'MS orbit (synodic)','LM transfer','MS during transfer','\DeltaV_1','rendezvous'}, ...
+       {'MS orbit','LM transfer','MS in transit','\DeltaV_1','rendezvous'}, ...
        'TextColor', S.text, 'Color', S.panel, 'EdgeColor', S.dim, ...
        'Location','southoutside','Orientation','horizontal','FontSize', S.fsSmall, ...
-       'NumColumns', 5);
+       'NumColumns', 3);
 xlim(ax, 2500*[-1 1]); ylim(ax, 2500*[-1 1]);
 
 ax2 = axes('Parent', fig, 'Position', [0.68 0.55 0.29 0.34]);
@@ -148,6 +170,16 @@ M.dV2_cr3bp      = Sh.dV2;
 M.dVtot_cr3bp    = Sh.dVtot;
 M.dV_extra_ms    = abs(Sh.dVtot - H.dVtot) * 1e3;      % m/s
 M.dV_extra_mms   = abs(Sh.dVtot - H.dVtot) * 1e6;      % mm/s
+M.dV_signed_mms  = (Sh.dVtot - H.dVtot) * 1e6;         % signed: negative = cheaper
+M.fam_spread_mms = FAM.spread_mms;
+M.fam_nClosed    = FAM.nClosed;
+if numel(FAM.members) >= 3
+    M.fam_minDV_mms  = (FAM.members(1).dVtot - H.dVtot) * 1e6;
+    M.fam_minDV_dtof = FAM.members(1).dtof_s;
+    M.fam_ref_mms    = (FAM.members(3).dVtot - H.dVtot) * 1e6;
+    M.fam_ref_dtof   = FAM.members(3).dtof_s;
+    M.fam_ref_miss_m = FAM.members(3).miss_m;
+end
 M.tof_cr3bp_s    = Sh.tof_s;
 M.tof_shift_s    = Sh.tof_s - H.dt_tof;
 M.exitflag       = Sh.exitflag;

@@ -36,13 +36,24 @@ positive outward. The triad is right-handed, since
 $\hat{\mathbf x}\times\hat{\mathbf y} = (-\hat{\mathbf v})\times(-\hat{\mathbf h})
 = \hat{\mathbf v}\times\hat{\mathbf h} = \hat{\mathbf r}$.
 
+\begin{quote}\small\itshape
+\textbf{This is not Fehse's frame.} Fehse's $+$\vbar{} points ahead of the
+target; here it points astern. A ``$50\unit{m}$ \vbar{} hold'' in this report is
+therefore $50\unit{m}$ \emph{behind} the target, and the sign of every Coriolis
+term below is flipped relative to Fehse or to any radial/along-track
+formulation. Every number in Part~3 is internally consistent with this choice.
+They are not interchangeable with a Fehse implementation without negating $x$
+and $\dot x$. Reference~\cite{fehse} is cited for the linearisation and for the
+operational shape of the approach, not as the source of this axis convention.
+\end{quote}
+
 Two remarks justify what looks at first like a perverse choice. Operationally,
 \vbar{} range is quoted astern: a ``$50\unit{m}$ \vbar{} hold'' is $50\unit{m}$
 behind the target, and the approach then walks $x$ from $+50\unit{m}$ down to
 zero at the port. Mathematically, the price is that the target's angular
 velocity is $-n$ about the frame's own $y$ axis, which flips the sign of every
 Coriolis term relative to the textbook radial/along-track ordering. Linearising
-about a circular chief \cite{cw1960,fehse} gives
+about a circular chief \cite{cw1960} gives
 
 \begin{align}
 \ddot x - 2n\dot z &= 0, \label{eq:hcw1}\\
@@ -54,10 +65,19 @@ This is exactly where a sign error hides most comfortably: copy a state
 transition matrix written for $x$ radial, label the axes \vbar{} and \rbar{}, and
 the free-drift plot still looks plausible while every targeting solution is
 quietly wrong. The convention was therefore settled empirically rather than
-asserted. Section~\ref{sec:discussion:verif} reports the test: fed an
-independent implementation's injection error, the targeting of
-Section~\ref{sec:proximity:hold} reproduces that implementation's $\dv$ to
-$1.4\%$, whereas the mirrored convention does not.
+asserted, and it is now pinned by \texttt{tests/test\_hcw\_convention.m}, which
+checks $\Phi(0) = I$, $\Phi(t)\Phi(-t) = I$, $\dot\Phi(0) = A$, the closed form
+against a column-by-column numerical integration of the same linear system to
+$3\times10^{-9}$, the sign and magnitude of the radial-release drift, and the
+reference cross-check below.
+
+Fed an independent implementation's injection error, the targeting of
+Section~\ref{sec:proximity:hold} returns $1.419\unit{m/s}$ against that
+implementation's $1.4\unit{m/s}$. Reading the same physical state in the
+ahead-positive frame instead returns $1.236\unit{m/s}$ and does not reproduce
+it. That is the evidence for the frame, and it is also why the ahead-positive
+convention was not adopted: switching would have broken the only independent
+check Part~3 has.
 
 A physical check completes the argument. Release the chaser $100\unit{m}$
 radially outward at zero relative velocity: it is on a higher, slower orbit and

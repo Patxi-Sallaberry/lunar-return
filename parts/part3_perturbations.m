@@ -54,10 +54,58 @@ if norm(d_J2) < 1 || norm(d_J2) > 100
     fprintf('  [warn] J2 miss outside the expected 1-100 km band - check units.\n');
 end
 
-% Mid-course correction scale: the miss has to be removed over roughly one
-% orbit, so the equivalent impulse is of order n2 * |miss|.
-dV_mcc = C.n2 * norm(d_J2) * 1e3;
-fprintf('  equivalent mid-course correction ~ n2*|miss| = %.2f m/s\n', dV_mcc);
+% ------------------------------------------------- mid-course correction ---
+% The naive figure, kept only so the report can say why it is the wrong
+% question: this is the Clohessy-Wiltshire cost of cancelling the offset over
+% a fraction of an orbit, i.e. treating a phase error as a proximity manoeuvre.
+dV_mcc_naive = C.n2 * norm(d_J2) * 1e3;
+
+% The real thing: single shooting on a correcting impulse inside the same
+% Cowell model, targeting the perturbed mothership at the nominal arrival.
+mcOpt = struct('maxEval', 80, 'dV2_nom', H.dV2*1e3, 'ode', C.odeWork);
+MC  = midcourse_correction(C, models(2).f, x0_LM, x0_MS, t_burn, H.dt_tof, H.dV1, mcOpt);
+mcOptT = mcOpt; mcOptT.t_corr = t_burn + 0.5*H.dt_tof;
+MCt = midcourse_correction(C, models(2).f, x0_LM, x0_MS, t_burn, H.dt_tof, H.dV1, mcOptT);
+
+fprintf('\nMid-course correction, J2 model, single shooting in the same dynamics\n');
+fprintf('  %-26s %8s %9s %9s %10s\n', 'impulse epoch', 'lever h', 'dV_mid', 'dV total', 'residual');
+fprintf('  %-26s %8.2f %9.4f %9.4f %8.3f m\n', 'mid-mission (adopted)', ...
+        MC.lever_s/3600, MC.dV_mid, MC.dV_extra, MC.miss_after*1e3);
+fprintf('  %-26s %8.2f %9.4f %9.4f %8.3f m\n', 'mid-transfer', ...
+        MCt.lever_s/3600, MCt.dV_mid, MCt.dV_extra, MCt.miss_after*1e3);
+fprintf('  naive CW cancellation quoted for comparison: %.2f m/s\n', dV_mcc_naive);
+fprintf('  the cost scales with the inverse lever arm, which is why the burn\n');
+fprintf('  belongs in the phasing coast where the error is accumulated.\n');
+dV_mcc = MC.dV_extra;
+
+% ------------------------------------------- J2 secular rates, Vallado ------
+% Closed-form mean-longitude rate against the numerically observed one. This
+% replaces the old "a stiffer central field shifts n by dn/n = (1/2) dmu/mu"
+% argument, which captures only the radial stiffening and is a factor of four
+% low: the observable also carries the periapsis and node rates.
+SR = struct('a', {C.R1, C.R2}, 'closed', {0,0}, 'numeric', {0,0}, 'rel', {0,0});
+fprintf('\nJ2 secular mean-longitude rate, closed form (Vallado) vs Cowell\n');
+for k = 1:2
+    aK = SR(k).a;
+    S2 = j2_secular_rates(C, aK, 0, 0);
+    x0k = [aK; 0; 0; 0; sqrt(C.muMoon/aK); 0];
+    [tk, Xk] = ode45(models(2).f, [0 6*2*pi/S2.n_bar], x0k, C.odeTight);
+    pf = polyfit(tk, unwrap(atan2(Xk(:,2), Xk(:,1))), 1);
+    SR(k).closed  = S2.lambdadot;
+    SR(k).numeric = pf(1);
+    SR(k).rel     = abs(pf(1) - S2.lambdadot) / S2.lambdadot;
+    fprintf('  a = %7.1f km : closed %.9e  numeric %.9e  rel %.2e  excess %.3e\n', ...
+            aK, S2.lambdadot, pf(1), SR(k).rel, S2.excess);
+end
+
+% --------------------------------------------- finite-burn gravity loss ----
+GL = gravity_loss(C, H.dV1_ms, [0.1 0.3 1.0]);
+fprintf('\nFinite-burn penalty on the %.2f m/s departure impulse (analytic)\n', H.dV1_ms);
+fprintf('  %6s %12s %10s %10s %12s\n', 'T/W', 'a_thrust', 't_burn', 'arc', 'loss');
+for k = 1:numel(GL)
+    fprintf('  %6.1f %9.3f m/s2 %8.1f s %8.2f deg %9.4f m/s\n', ...
+            GL(k).TW, GL(k).a_thrust, GL(k).tb, GL(k).arc_deg, GL(k).loss_ms);
+end
 
 % ------------------------------------------------ acceleration magnitudes --
 a_kep = C.muMoon / C.R1^2 * 1e3;                                    % m/s^2
@@ -146,11 +194,30 @@ traj = struct('t', t_all, ...
               'd_3Bonly', d_3Bonly, 't_burn', t_burn); %#ok<NASGU>
 save(fullfile(C.resDir, 'traj_part3.mat'), '-struct', 'traj');
 
-M.miss_kep_m   = norm(d_kep) * 1e3;
+% NAMED two-body miss. This is the LM-MS separation at nominal arrival through
+% the Cowell pipeline with perturbations switched off - a different quantity
+% from Part 1's max |r_ode - r_kepler|, which is an integrator residual. The
+% report used to quote both under one name; they are now distinct fields and
+% Table 5 uses this one only.
+M.miss_LM_MS_twobody = norm(d_kep) * 1e3;
+M.miss_kep_m   = norm(d_kep) * 1e3;          % retained: older name, same value
 M.miss_J2_km   = norm(d_J2);
 M.miss_J2_3B_km = norm(d_J2_3B);
 M.miss_3Bonly_m = norm(d_3Bonly) * 1e3;
-M.dV_mcc_ms    = dV_mcc;
+
+M.dV_mcc_ms       = dV_mcc;                  % the real retarget, mid-mission
+M.dV_mcc_naive_ms = dV_mcc_naive;            % the CW figure, kept for contrast
+M.mcc_dV_mid      = MC.dV_mid;
+M.mcc_resid_m     = MC.miss_after * 1e3;
+M.mcc_lever_h     = MC.lever_s / 3600;
+M.mcc_midtransfer = MCt.dV_extra;
+M.j2_rate_rel_R1  = SR(1).rel;
+M.j2_rate_rel_R2  = SR(2).rel;
+M.j2_excess_R1    = SR(1).closed / sqrt(C.muMoon/C.R1^3) - 1;
+M.gloss_TW01      = GL(1).loss_ms;
+M.gloss_TW03      = GL(2).loss_ms;
+M.gloss_TW10      = GL(3).loss_ms;
+M.gloss_tb01      = GL(1).tb;
 M.a_kep = a_kep; M.a_J2 = a_J2; M.a_3B = a_3B;
 
 fprintf('Part 3 complete: 3 figures written.\n');

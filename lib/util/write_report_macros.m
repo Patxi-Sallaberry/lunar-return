@@ -62,11 +62,38 @@ defs = {
  'mIKtwoRes',     'ik2_res_mm',      '%.2f'
  'mNfig',         'nFigures',        '%d'
  'mReelSec',      'showreelSeconds', '%.0f'
+ % --- pass 4 -------------------------------------------------------------
+ 'mMissTwoBody',  'miss_LM_MS_twobody', '%.4f'
+ 'mMissKepMm',    'miss_num_vs_kepler_mm', '%.3f'
+ 'mMccReal',      'dV_mcc_ms',       '%.3f'
+ 'mMccNaive',     'dV_mcc_naive_ms', '%.1f'
+ 'mMccMid',       'mcc_dV_mid',      '%.3f'
+ 'mMccResid',     'mcc_resid_m',     '%.3f'
+ 'mMccLever',     'mcc_lever_h',     '%.2f'
+ 'mMccTransfer',  'mcc_midtransfer', '%.1f'
+ 'mJtwoRateRel',  'j2_rate_rel_R1',  '%.1e'
+ 'mJtwoExcess',   'j2_excess_R1',    '%.2e'
+ 'mGlossA',       'gloss_TW01',      '%.3f'
+ 'mGlossB',       'gloss_TW03',      '%.4f'
+ 'mGlossC',       'gloss_TW10',      '%.4f'
+ 'mGlossTb',      'gloss_tb01',      '%.0f'
+ 'mMCn',          'mc_nDraw',        '%d'
+ 'mMCpFive',      'mc_hold_p05',     '%.3f'
+ 'mMCpFifty',     'mc_hold_p50',     '%.3f'
+ 'mMCpNinetyFive','mc_hold_p95',     '%.3f'
+ 'mFamSpread',    'fam_spread_mms',  '%.0f'
+ 'mFamN',         'fam_nClosed',     '%d'
+ 'mFamMinDV',     'fam_minDV_mms',   '%+.2f'
+ 'mFamMinTof',    'fam_minDV_dtof',  '%+.1f'
+ 'mFamRefDV',     'fam_ref_mms',     '%+.2f'
+ 'mFamRefTof',    'fam_ref_dtof',    '%+.1f'
+ 'mCRsigned',     'dV_signed_mms',   '%+.2f'
 };
 
 % A couple of convenience quantities the parts do not store directly.
 if isfield(m, 'dt_tof_s'), m.dt_tof_min = m.dt_tof_s / 60; end
 if isfield(m, 'errLM_max_m'), m.errLM_max_mm = m.errLM_max_m * 1e3; end
+if isfield(m, 'miss_num_vs_kepler'), m.miss_num_vs_kepler_mm = m.miss_num_vs_kepler * 1e3; end
 if ~isfield(m, 'showreelSeconds'), m.showreelSeconds = 87; end
 
 for k = 1:size(defs, 1)

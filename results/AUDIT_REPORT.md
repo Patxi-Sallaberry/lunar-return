@@ -1,8 +1,8 @@
 # Physics audit
 
-Generated 2026-09-05 06:14:41 by `tests/audit_reference.m`.
+Generated 2026-09-05 10:42:05 by `tests/audit_reference.m`.
 
-**60 PASS, 1 WARN, 0 FAIL, 1 INFO.**
+**70 PASS, 1 WARN, 0 FAIL, 2 INFO.**
 
 No failure. Every design scalar is reproduced from the raw constants in
 closed form, and every order-of-magnitude result agrees with an independent
@@ -131,11 +131,32 @@ below it is the desired outcome, so no relative error is quoted for those rows.
 | WDLS position residual | mm | &le; 1.5 | 0.99053 | - | - | **PASS** |  |
 | WDLS iterations | - | &le; 80 | 18 | - | - | **PASS** |  |
 
+## K. Formula identities and named quantities
+
+| quantity | unit | ref / limit | obtained | abs. err | rel. err | verdict | note |
+|---|---|---|---|---|---|---|---|
+| h_inner vs sqrt(mu*R1) | km^2/s | 3001.4 | 3001.4 | 0 | 0.00e+00 | **PASS** | the report text must carry the square root |
+| tof_formula vs pi*sqrt(a^3/mu) | s | 3975.17 | 3975.17 | 0 | 0.00e+00 | **PASS** |  |
+| HCW convention suite | - | n/a | 1 | - | - | **PASS** | Phi(0) 0e+00, Phi(t)Phi(-t) 6e-13, dPhi/dt 2e-16, vs ode45 3e-09, radial drift +11.31 km, ref hold 1.419 m/s (mirrored 1.236) |
+| two_body_miss_named (both fields present) | - | n/a | 1 | - | - | **PASS** | miss_num_vs_kepler yes, miss_LM_MS_twobody yes |
+| miss_LM_MS_twobody | m | &le; 0.01 | 0.00555977 | - | - | **PASS** | Cowell pipeline, perturbations off |
+
+## L. Operational realism added in pass 4
+
+| quantity | unit | ref / limit | obtained | abs. err | rel. err | verdict | note |
+|---|---|---|---|---|---|---|---|
+| midcourse_j2, real retarget | m/s | n/a | 0.890835 | - | - | **PASS** | mid-mission epoch, residual 0.000 m; naive CW quote was 10.7 m/s |
+| j2_secular_rate vs Vallado, R1 | - | &le; 0.08 | 4.74057e-06 | - | - | **PASS** | mean-longitude rate, closed form vs Cowell |
+| j2_secular_rate vs Vallado, R2 | - | &le; 0.08 | 3.4554e-06 | - | - | **PASS** |  |
+| mc_hold_p95 finite | m/s | n/a | 1.93563 | - | - | **PASS** | 20 draws, P05 0.642 / P50 1.008, official draw inside the band |
+| gravity loss at T/W = 0.1 | m/s | &le; 5 | 0.346195 | - | - | **PASS** | analytic finite-burn penalty, no integration |
+| CR3BP family spread over +-40 s of TOF | mm/s | n/a | 76.7809 | - | - | **INFO** | 10 members close below 1 m; min-dV member -8.9 mm/s at dTOF +0 s |
+
 ## J. Build artefacts
 
 | quantity | unit | ref / limit | obtained | abs. err | rel. err | verdict | note |
 |---|---|---|---|---|---|---|---|
-| metrics.json is parseable | - | n/a | 1 | - | - | **PASS** | 3352 bytes, escapes valid |
+| metrics.json is parseable | - | n/a | 1 | - | - | **PASS** | 4258 bytes, escapes valid |
 
 ---
 

@@ -113,7 +113,7 @@ M.fig17 = save_fig(fig, 'fig17_joint_trajectory', C);
 
 % --- fig20 : convergence + capture geometry -------------------------------
 fig = new_figure(1700, 850);
-ax = axes('Parent', fig, 'Position', [0.06 0.13 0.38 0.74]);
+ax = axes('Parent', fig, 'Position', [0.06 0.12 0.38 0.72]);
 style_axes(ax, 'WDLS convergence', 'iteration', 'residual');
 set(ax, 'YScale', 'log');        % semilogy on a held axes would not do it
 semilogy(ax, 0:numel(R1.err_pos)-1, max(R1.err_pos, 1e-12), '-', ...
@@ -127,7 +127,9 @@ legend(ax, {'target 1 |\Deltap| [m]','target 1 |e_o|','target 2 |\Deltap| [m]'},
        'TextColor', S.text, 'Color', S.panel, 'EdgeColor', S.dim, ...
        'Location','northeast','FontSize', S.fsSmall);
 
-ax2 = axes('Parent', fig, 'Position', [0.50 0.08 0.47 0.84]);
+% Top kept clear of the figure-wide annotation: at report font sizes the panel
+% title and the annotation were landing on the same line.
+ax2 = axes('Parent', fig, 'Position', [0.50 0.07 0.47 0.78]);
 style_axes(ax2, 'Capture path of the end effector', 'x [m]', 'y [m]', 'z [m]');
 axis(ax2, 'equal'); view(ax2, 42, 20);
 FK0 = fkine_5R(q_start, P);

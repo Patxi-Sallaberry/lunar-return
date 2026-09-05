@@ -100,10 +100,43 @@ What it does is stiffen the central field by a \emph{radius-dependent} amount,
 \end{equation}
 
 which is $2.73\times10^{-4}$ at the chaser radius and $2.01\times10^{-4}$ at the
-target radius. A circular orbit responds with $\delta n/n = \tfrac12 \delta\mu_{\text{eff}}/\mu$,
-so the two vehicles accumulate \emph{different} along-track phase. Over ten and a
-half hours that difference is kilometres. The miss is therefore almost purely
-along-track, which is exactly what the simulation produces.
+target radius, so the two vehicles accumulate \emph{different} along-track phase.
+Over ten and a half hours that difference is kilometres, and the miss is
+therefore almost purely along-track, which is what the simulation produces.
+
+The size of that phase drift should be taken from the secular element rates
+rather than from a stiffened-central-field argument. With
+$\bar n = \sqrt{\mu_M/a^3}$, $p = a(1-e^2)$ and $k = \tfrac34 \bar n J_2 (R_M/p)^2$,
+the classical first-order rates are \cite{vallado}
+
+\begin{equation}
+\dot\Omega = -2k\cos i, \qquad
+\dot\omega = k\,(4 - 5\sin^2 i), \qquad
+\dot M = \bar n + k\sqrt{1-e^2}\,(2 - 3\sin^2 i).
+\label{eq:secular}
+\end{equation}
+
+On an equatorial circular orbit the node and the argument of periapsis are
+individually undefined, but their sum with the mean anomaly is not. The
+observable is the mean-longitude rate
+
+\begin{equation}
+\dot\lambda = \dot\Omega + \dot\omega + \dot M
+            = \bar n\left[1 + 3 J_2 \left(\frac{R_M}{a}\right)^{\!2}\right],
+\label{eq:lambdadot}
+\end{equation}
+
+an excess of $\mJtwoExcess$ at the chaser radius. Comparing~\eqref{eq:lambdadot}
+with the slope of $\mathrm{unwrap}\,\arctan(y/x)$ taken from the $J_2$-only
+Cowell arc gives agreement to $\mJtwoRateRel$ relative, which is the check
+recorded in the audit.
+
+It is worth noting what this replaces. An earlier draft argued that a stiffer
+central field shifts the mean motion by $\delta n/n = \tfrac12\,\delta\mu_{\text{eff}}/\mu$,
+giving an excess of $\tfrac34 J_2 (R_M/a)^2$. That captures only the radial
+stiffening and drops the periapsis and node contributions, and it is a factor of
+four too small. The numerical arc agrees with~\eqref{eq:lambdadot}, not with the
+hand-wave.
 
 \subsection{Results}
 \label{sec:perturbations:results}
@@ -118,32 +151,43 @@ vehicle would actually do. No retargeting is performed.
 \centering
 \caption{Rendezvous miss at the nominal arrival epoch, flying the Keplerian plan
 against progressively more complete dynamics. The Keplerian control case through
-the identical code path closes to $5.6\times10^{-3}\unit{m}$, so the residuals
-below are physics and not integrator noise.}
+the identical code path closes to $\mMissTwoBody\unit{m}$, so the residuals
+below are physics and not integrator noise. That control number is a
+vehicle-to-vehicle separation, not the $\mKeplerErrMm\unit{mm}$ propagator
+residual of \S\ref{sec:transfer:verif}; the two are named separately in
+\texttt{metrics.json}.}
 \label{tab:miss}
 \small
 \begin{tabular}{lrl}
 \toprule
 Dynamics & Miss & Unit \\
 \midrule
-Two-body (control case)              & $0.006$        & m \\
+Two-body control case (\texttt{miss\_LM\_MS\_twobody}) & \mMissTwoBody & m \\
 Lunar $J_2$                          & \mMissJtwo     & km \\
 Lunar $J_2$ + Earth third body       & \mMissJtwoTB   & km \\
 \midrule
 Third-body contribution alone        & \mMissTB       & m \\
-Equivalent mid-course correction $\approx n_2\lVert\mathbf d\rVert$ & \mDVmcc & m/s \\
+Mid-course correction, retargeted (\S\ref{sec:pert:mcc}) & \mMccReal & m/s \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\noindent
+The control case is the LM--MS separation through this same pipeline with the
+perturbations switched off. It is $\mMissTwoBody\unit{m}$, not the
+$\mKeplerErrMm\unit{mm}$ integrator residual of \S\ref{sec:transfer:verif};
+see the note there.
 
 Three readings follow. First, oblateness alone moves the meeting point by
 $\mMissJtwo\unit{km}$ -- far beyond any docking corridor, and the reason a real
 plan carries a correction. Second, the Earth contributes only $\mMissTB\unit{m}$
 of that: at $100$--$400\unit{km}$ altitude the vehicle is deep enough in the
 lunar well that Earth tides are a hundred times smaller than lunar oblateness.
-Third, removing the miss over roughly one orbit costs about $\mDVmcc\unit{m/s}$,
-some $9\%$ of the nominal transfer budget. That is a realistic mid-course
-allocation for a design of this fidelity.
+Third, the miss is cheap to remove if it is removed early: a retargeting
+impulse placed halfway through the mission costs $\mMccReal\unit{m/s}$, well
+under $1\%$ of the nominal transfer budget. Section~\ref{sec:pert:mcc} derives
+that number and explains why the obvious estimate is an order of magnitude too
+pessimistic.
 
 \begin{figure}[htbp]
 \centering
@@ -166,6 +210,62 @@ argument of periapsis into the argument of latitude when $e < 10^{-8}$. Without
 that guard the conversion returns noise for precisely the orbits this mission
 uses.
 
+\subsection{The mid-course correction, priced properly}
+\label{sec:pert:mcc}
+
+The tempting estimate is to treat the $\mMissJtwo\unit{km}$ offset as a
+relative-motion problem and cancel it with a Clohessy--Wiltshire two-impulse
+over a fraction of an orbit, which costs $n_2\lVert\mathbf d\rVert = \mMccNaive\unit{m/s}$.
+That number is arithmetically correct and operationally wrong. Nobody flies a
+$15\unit{km}$ along-track error as a proximity manoeuvre, because it is a
+\emph{phase} error and phase is bought with time, not with thrust.
+
+A $15\unit{km}$ along-track offset at $R_2$ is an angle of
+$15/2137 \approx 7\unit{mrad}$. Correcting it with a small period change over
+one target revolution needs
+
+\begin{equation}
+\Delta\theta = 3\pi\,\frac{\Delta a}{a}
+\;\Longrightarrow\;
+\frac{\Delta a}{a} \approx 7.5\times10^{-4}
+\;\Longrightarrow\;
+\Delta v \approx \tfrac12 n \Delta a \sim 0.6\unit{m/s},
+\label{eq:phasefix}
+\end{equation}
+
+an order of magnitude below the CW figure.
+
+\texttt{lib/astro/midcourse\_correction.m} computes the real thing rather than
+the estimate: single shooting on a correcting impulse, inside the same Cowell
+model that produced the miss, targeting the \emph{perturbed} mothership at the
+nominal arrival epoch. The result is $\mMccReal\unit{m/s}$ with a residual miss
+of $\mMccResid\unit{m}$, which is~\eqref{eq:phasefix} to within a factor of two.
+
+\begin{table}[htbp]
+\centering
+\caption{Cost of the same retarget as a function of when it is applied. The
+error is accumulated during the $\mTwaitH\unit{h}$ phasing coast, so a burn
+placed there has hours of lever arm; a burn halfway through the $66$-minute
+transfer has $33$ minutes and is barely cheaper than the naive estimate.}
+\label{tab:mcc}
+\small
+\begin{tabular}{lrrr}
+\toprule
+Impulse epoch & Lever arm [h] & Total $\dv$ [m/s] & Residual [m] \\
+\midrule
+Mid-mission (adopted)          & \mMccLever & \mMccReal     & \mMccResid \\
+Mid-transfer                   & $0.55$     & \mMccTransfer & $< 0.1$ \\
+\midrule
+Naive CW cancellation          & --         & \mMccNaive    & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The lesson is not that the CW number was miscalculated. It is that the cost of a
+correction scales roughly with the inverse of the remaining lever arm, so the
+question "how much does the $J_2$ miss cost?" has no answer until the epoch of
+the burn is fixed. Fixing it late is what makes corrections expensive.
+
 \subsection{Mitigation, and what was deliberately not implemented}
 
 Three standard responses exist and are worth naming even though only the third
@@ -181,8 +281,48 @@ $J_2$, this becomes a numerical search rather than a closed form
 rather than equal shape makes the relative geometry insensitive to a
 common-mode field error.
 
-\emph{Mid-course correction.} The direct answer, budgeted above at
-$\mDVmcc\unit{m/s}$.
+\emph{Mid-course correction.} The direct answer, budgeted in
+\S\ref{sec:pert:mcc} at $\mMccReal\unit{m/s}$ when applied mid-mission.
+
+\subsection{Finite-burn penalty on the departure impulse}
+
+The impulsive assumption of Section~\ref{sec:transfer} deserves a number rather
+than an apology. A finite tangential burn of duration $t_b$ sweeps an arc
+$\Delta\theta = n t_b$ while thrusting, so the thrust direction rotates away
+from the intended increment and the effective delta-v is the vector average,
+$\sin(\Delta\theta/2)/(\Delta\theta/2)$. To first order the penalty is
+
+\begin{equation}
+\Delta v_{\text{loss}} \approx \Delta v \, \frac{(n t_b)^2}{24}.
+\label{eq:gravloss}
+\end{equation}
+
+For the $\mDVone\unit{m/s}$ departure impulse, with thrust-to-weight quoted
+against local lunar gravity $\mu_M/R_1^2 = \mAkep\unit{m/s^2}$:
+
+\begin{table}[htbp]
+\centering
+\caption{Finite-burn penalty on the departure impulse, analytic, no integration.
+Even the sluggish $T/W = 0.1$ case costs less than half a metre per second,
+which is why the impulsive treatment survives.}
+\label{tab:gravloss}
+\small
+\begin{tabular}{lrrr}
+\toprule
+$T/W$ (local) & Burn time [s] & Arc swept [deg] & Penalty [m/s] \\
+\midrule
+$0.1$ & \mGlossTb & $21.2$ & \mGlossA \\
+$0.3$ & $139$     & $7.1$  & \mGlossB \\
+$1.0$ & $42$      & $2.1$  & \mGlossC \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A note on the formula, because a dimensionally wrong version of it circulates.
+The expression $\tfrac12 n^2 r t_b^2$ sometimes quoted for this estimate has
+units of length, not velocity: it is the free-fall displacement over the burn.
+Evaluated for the $T/W = 0.1$ case it returns $126\unit{km/s}$, which is a
+useful reminder to check units before believing a formula.
 
 \subsection{Verification}
 

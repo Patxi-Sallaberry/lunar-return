@@ -21,15 +21,20 @@ Transfer   & Total impulsive $\dv$              & $\mDVtot\unit{m/s}$ \\
 Proximity  & Injection error                    & $\mDrZero\unit{m}$, $\mDvZero\unit{m/s}$ \\
            & Uncorrected drift, 3 orbits        & $\mDriftKm\unit{km}$ \\
            & Hold acquisition $\dv$             & $\mDVhold\unit{m/s}$ \\
+           & \quad Monte Carlo, $\mMCn$ draws, P05 / P50 / P95 & $\mMCpFive$ / $\mMCpFifty$ / $\mMCpNinetyFive\unit{m/s}$ \\
            & Docking $\dv$                      & $\mDVdock\unit{m/s}$ \\
            & Linearisation error, 3 orbits      & $\mNlSep\unit{m}$ \\
 \midrule
 Perturbed  & $J_2$ miss, no retargeting         & $\mMissJtwo\unit{km}$ \\
            & Third-body contribution            & $\mMissTB\unit{m}$ \\
-           & Mid-course correction budget       & $\mDVmcc\unit{m/s}$ \\
+           & Mid-course retarget, mid-mission   & $\mMccReal\unit{m/s}$ \\
+           & \quad naive CW estimate, for contrast & $\mMccNaive\unit{m/s}$ \\
+           & $J_2$ secular rate vs Vallado      & $\mJtwoRateRel$ rel. \\
+           & Finite-burn penalty, $T/W = 0.1$   & $\mGlossA\unit{m/s}$ \\
 \midrule
 CR3BP      & Converged miss                     & $\mCRmiss\unit{m}$ \\
-           & Correction to the two-body design  & $\mCRextra\unit{mm/s}$ \\
+           & Correction to the two-body design  & $\mCRsigned\unit{mm/s}$ \\
+           & \quad family spread over $\pm40\unit{s}$ of $t_f$ & $\mFamSpread\unit{mm/s}$ \\
 \midrule
 Robotics   & Reach, 5R                          & $\mReach\unit{m}$ \\
            & Peak joint torque at $100\unit{N}$ & $\mTauMax\unit{N\,m}$ \\
@@ -64,19 +69,22 @@ The four plausible causes were checked in the source rather than assumed: the
 departure impulse is applied along the perturbed velocity, the target is
 propagated with the same perturbed dynamics as the chaser, the full
 three-component $J_2$ formula is used, and the Keplerian control case through
-the identical code path closes to $5.6\times10^{-3}\unit{m}$. None is at fault.
+the identical code path closes to $\mMissTwoBody\unit{m}$. None is at fault.
 The residual is sensitivity, not error. The miss is a \emph{difference} of two
 nearly equal secular phase slips accumulated over ten and a half hours, so it
 inherits the sensitivity of both to the exact burn epoch and to the integrator
 tolerance. Two correct implementations agreeing to $4\%$ on such a quantity is
 the expected outcome, and the discrepancy was documented rather than removed.
 
-\paragraph{CR3BP correction: $\mCRextra\unit{mm/s}$ against $1.5\unit{mm/s}$.}
-The single warning. As explained in Section~\ref{sec:cr3bp}, the planar shooting
-problem is rank-deficient by one, so the zero-miss set is a curve and different
-optimiser starts land at different points on it. Both figures support the same
-operational statement -- Earth tides move this budget by millimetres per second
--- and forcing agreement would be curve-fitting rather than physics.
+\paragraph{CR3BP correction: a family, not a discrepancy.}
+The planar shooting problem is rank-deficient by one, so the zero-miss set is a
+curve and different optimiser starts land at different points on it. Rather than
+defend one point, Section~\ref{sec:cr3bp} now publishes the family: scanning
+$t_f$ over $\pm40\unit{s}$ and re-optimising gives \mFamN{} members that all
+close below one metre, spanning $\mFamSpread\unit{mm/s}$ of budget. The
+independently reported member near $\Delta t_f = +17\unit{s}$ sits on that same
+curve at $\mFamRefDV\unit{mm/s}$. There is no disagreement to reconcile, and
+forcing one optimiser to land on another's point would have been curve-fitting.
 
 \paragraph{Hold $\dv$: $\mDVhold$ against $1.4\unit{m/s}$.}
 Not comparable: the injection error is a random draw and the two runs use
@@ -115,9 +123,43 @@ discover them.
       held fixed by assumption, no joint flexibility, no contact dynamics, and no
       free-floating momentum coupling. The local frame is treated as inertial
       during berthing.
-\item \textbf{One random draw.} The injection error is a single realisation, not
-      a Monte Carlo campaign. The proximity $\dv$ figures are therefore one
-      sample of a distribution whose spread is not characterised.
+\item \textbf{The error law is assumed, even though the spread is now sampled.}
+      The headline proximity numbers come from one draw, but $\mMCn$ further
+      draws of the same law give P05/P50/P95 of
+      $\mMCpFive$/$\mMCpFifty$/$\mMCpNinetyFive\unit{m/s}$ for the hold, so the
+      official figure is no longer a single unqualified sample. What remains
+      unjustified is the law itself: a uniform magnitude with an isotropic
+      direction is a placeholder for a real ascent-guidance covariance.
+\end{itemize}
+
+\subsection{Four things a reader should not take from this report}
+
+The limitations above are model boundaries. These four are calibration
+statements: they say how far the numbers are from an actual programme.
+
+\begin{itemize}
+\item \textbf{The Artemis architecture is not this one.} Human Landing System
+      rendezvous is with a Gateway or Orion stack on a near-rectilinear halo
+      orbit, not a $400\unit{km}$ circular LLO. The Hohmann-plus-phasing
+      arithmetic of Section~\ref{sec:transfer} does not carry over to an NRHO.
+      The three-body machinery of Section~\ref{sec:cr3bp} is the right framework
+      there, which is the real reason that part exists.
+\item \textbf{$J_2$ is the right first-order term here and only here.} Over the
+      $\mTmissionH\unit{h}$ of this mission it dominates. Over ten days it does
+      not: the GRAIL-derived field and the $C_{22}$ ellipticity take over, and
+      low lunar orbits become genuinely unstable. Nothing in this report should
+      be extrapolated to a multi-day loiter.
+\item \textbf{The injection dispersion used here is optimistic.} Apollo lunar
+      module insertion errors were several metres per second, not the
+      $\mDvZero\unit{m/s}$ drawn in Section~\ref{sec:proximity}. The
+      $\mDVprox\unit{m/s}$ proximity budget is therefore a lower bound, and the
+      Monte Carlo of Table~\ref{tab:summary} widens the spread without changing
+      the law it samples from.
+\item \textbf{The arm result is static.} A 5R manipulator on a free-flying base
+      is an 11-degree-of-freedom system; holding the base fixed is an attitude
+      control assumption, not a mechanical fact. The $\mTauMax\unit{N\,m}$ peak
+      is a static load. A capture executed at speed would add inertial coupling
+      of the same order for a $\mArmMass\unit{kg}$ arm.
 \end{itemize}
 
 \subsection{Conclusions}

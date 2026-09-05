@@ -150,6 +150,19 @@ Over the whole $\mTmissionH\unit{h}$ timeline the two solutions differ by at mos
 $\mKeplerErrMm\unit{mm}$ in position, and the numerically propagated rendezvous
 closes to $\mMissKep\unit{m}$. This is the single most important number in the
 report: it is the licence to believe every perturbed result that follows.
+
+\paragraph{Two different quantities, two different names.}
+The millimetre-class figure above is an \emph{integrator residual}: the largest
+difference between the \texttt{ode45} state and the closed-form Kepler state at
+the same epochs, stored as \texttt{miss\_num\_vs\_kepler}. It is not the
+vehicle-to-vehicle separation quoted for the unperturbed control case in
+Table~\ref{tab:miss}, which is $\mMissTwoBody\unit{m}$ and is stored as
+\texttt{miss\_LM\_MS\_twobody}. That one is an LM--MS distance produced by the
+Section~\ref{sec:perturbations} Cowell pipeline with the perturbations switched
+off, so it carries that pipeline's working tolerance and both impulse
+applications, not the propagator alone. Both are small, they are allowed to
+differ by two orders of magnitude, and quoting one for the other would be
+wrong. Earlier drafts of this report did exactly that.
 When Section~\ref{sec:perturbations} reports a $\mMissJtwo\unit{km}$ miss under
 $J_2$, we know that $15\unit{km}$ is physics and not integrator drift, because
 the same integrator reproduces the analytical solution to a fifth of a

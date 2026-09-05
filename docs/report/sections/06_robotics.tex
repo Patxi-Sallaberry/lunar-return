@@ -137,7 +137,13 @@ equilibrium gives the generalised forces by duality,
 \end{equation}
 
 where $\mathbf w$ stacks the body wrenches ordered $[\text{moment};\text{force}]$
-to match the $[\boldsymbol\omega; \mathbf v]$ twist ordering. Only the last body
+to match the $[\boldsymbol\omega; \mathbf v]$ twist ordering used by $N$.
+Section~\ref{sec:ik} uses the opposite stacking, $[\text{linear};\text{angular}]$
+for the end-effector Jacobian and $\boldsymbol\tau = J^\top[\mathbf f;\mathbf n]$,
+because the task error there is naturally written $[\Delta\mathbf p; \mathbf e_o]$.
+Both orderings are internally consistent and the audit applies the $6\times6$
+permutation when it compares the two routes against each other; $N$ is not
+rewritten to match. Only the last body
 is loaded, with the contact wrench transported from the tip to the centre of
 mass of link 5. The actuators and the attitude control system must supply
 $-\boldsymbol\tau$.
