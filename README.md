@@ -1,5 +1,8 @@
 # Lunar Return Rendezvous
 
+**Patxi Sallaberry** · MATLAB · [32-page report](results/report/Lunar_Return_Rendezvous_Report.pdf) ·
+[89 s showreel](results/video/showreel.mp4)
+
 A crew lifts off from the Moon. Their ascent stage reaches a 100 km circular orbit with the
 dispersion that a single-string engine and a shifting centre of mass always leave behind. Their
 mothership is 300 km higher and ten degrees ahead. Nobody is coming to help.
@@ -330,4 +333,4 @@ Public textbooks and papers only.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE). Copyright © 2026 Patxi Sallaberry.
