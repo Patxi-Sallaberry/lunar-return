@@ -119,7 +119,7 @@ C.figDPI      = 200;
 
 % Project identity. Kept here rather than baked into the end card so that a
 % fork only has to change one line to re-render the video with its own URL.
-C.repoURL     = 'github.com/Patxi-Sallaberry/lunar-return-rendezvous';
+C.repoURL     = 'github.com/Patxi-Sallaberry/lunar-return';
 
 % Repository root, resolved from this file so nothing depends on the caller's
 % working directory.

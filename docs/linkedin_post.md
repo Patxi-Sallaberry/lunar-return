@@ -34,6 +34,6 @@ Chaque chiffre est recalculé indépendamment par un script d'audit :
 60 PASS, 1 WARN, 0 FAIL. L'écart qui subsiste est documenté, pas ajusté.
 
 Rapport PDF 29 pages, 20 figures, showreel 89 s :
-https://github.com/Patxi-Sallaberry/lunar-return-rendezvous
+https://github.com/Patxi-Sallaberry/lunar-return
 
 #Aerospace #MATLAB #OrbitalMechanics #SpaceRobotics
