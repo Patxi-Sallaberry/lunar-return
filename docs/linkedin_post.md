@@ -1,39 +1,33 @@
 # Post LinkedIn — version française
 
-À publier avec `results/video/showreel_square.mp4` (1080×1080) ou
-`showreel.mp4` (1920×1080, 89 s). Environ 1 250 caractères.
+À publier avec `results/video/showreel.mp4` (89 s) ou le format carré
+`showreel_square.mp4`. Environ 1 050 caractères.
 
 ---
 
-Un équipage décolle de la Lune. Son étage de remontée atteint 100 km avec la
-dispersion qu'un moteur non redondant laisse toujours derrière lui. Le
-vaisseau-mère est 300 km plus haut. J'ai simulé tout ce qui se passe ensuite.
+Le transfert dure 66 minutes. L'attente pour pouvoir l'entamer en dure 9,4.
 
-🌑 Transfert de Hohmann 100 → 400 km : ΔV = 118,80 m/s. Mais la fenêtre de
-phasage vient d'être manquée, donc 9,44 h d'attente avant l'allumage. Le
-transfert dure 66 minutes : ici, c'est le temps qui contraint, pas l'ergol.
+C'est le résultat qui m'a le plus surpris en simulant le retour d'un équipage
+depuis la Lune : un étage de remontée à 100 km, un vaisseau-mère 300 km plus
+haut, et une fenêtre de phasage qu'on vient de manquer. Sur ce type de
+rendez-vous, l'ergol est bon marché — c'est la patience qui contraint
+l'architecture.
 
-🎯 Propagation numérique validée contre la solution analytique de Kepler :
-0,19 mm d'écart sur 10,5 h de vol. C'est ce chiffre qui rend crédible tout le
-reste.
+Trois chiffres :
 
-🛰️ Opérations de proximité en Hill-Clohessy-Wiltshire : une erreur d'injection
-de 529 m devient 21 km de dérive en trois orbites. Deux impulsions pour tenir le
-point d'attente à 50 m, puis une approche V-bar forcée en cinq segments jusqu'au
-port. Total : 1,28 m/s, soit 1 % du budget de transfert.
+→ 118,80 m/s pour le transfert de Hohmann complet.
 
-🌍 J2 lunaire + troisième corps Terre, sans re-ciblage : le design keplérien rate
-le rendez-vous de 15,1 km. La Terre n'en explique que 116 m. À cette altitude,
-c'est l'aplatissement lunaire qui compte, pas la Terre — l'inverse de l'intuition
-qu'on ramène de l'orbite terrestre.
+→ 0,19 mm d'écart entre la propagation numérique et la solution analytique de
+Kepler sur 10,5 h de vol. C'est ce contrôle qui rend crédible tout le reste.
 
-🦾 Bras de berthing 5R : dualité cinéto-statique, 396 N·m à l'épaule sous 100 N.
-Cinématique inverse en moindres carrés amortis pondérés, 0,99 mm en 18 itérations.
+→ 15,1 km de rendez-vous manqué sous J2 sans re-ciblage, corrigés pour 0,89 m/s
+si la correction est placée tôt. Le même re-ciblage à mi-transfert en coûte
+12,6 : le prix d'une manœuvre dépend d'abord de sa date.
 
-Chaque chiffre est recalculé indépendamment par un script d'audit :
-60 PASS, 1 WARN, 0 FAIL. L'écart qui subsiste est documenté, pas ajusté.
+Écrit en MATLAB de base — `ode45` et `fminsearch`, aucune toolbox. Chaque
+grandeur est recalculée en forme fermée par un script d'audit qui tourne à
+chaque build : 70 PASS, 0 FAIL. Rapport de 32 pages et showreel dans le dépôt.
 
-Rapport PDF 29 pages, 20 figures, showreel 89 s :
 https://github.com/Patxi-Sallaberry/lunar-return
 
-#Aerospace #MATLAB #OrbitalMechanics #SpaceRobotics
+#astrodynamics #MATLAB #rendezvous

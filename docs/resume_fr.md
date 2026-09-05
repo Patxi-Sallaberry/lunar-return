@@ -70,7 +70,14 @@ est explicite dans le rapport plutôt que passée sous silence.
 ```
 
 MATLAB de base uniquement — `ode45` et `fminsearch`, aucune toolbox, aucune
-éphéméride externe, aucune image téléchargée.
+éphéméride externe, aucune image téléchargée. `ffmpeg` assemble le showreel,
+`latexmk` compile le rapport.
+
+J'ai utilisé Claude Code comme agent de développement pour la structure du
+dépôt, le code répétitif, le gabarit LaTeX et la boucle de build non
+supervisée. L'autorité sur la justesse reste `tests/audit_reference.m`, qui
+recalcule chaque grandeur en forme fermée depuis les constantes brutes : quand
+l'audit et le texte se contredisaient, c'est le texte qui a été corrigé.
 
 **Stack :** MATLAB · ode45 · matrice de transition HCW · Cowell J2 + 3 corps ·
 tir simple CR3BP · moindres carrés amortis pondérés.

@@ -10,6 +10,10 @@ pull the meeting point apart, a three-body re-check of the whole manoeuvre, and 
 that finally grabs the vehicle. Everything is written from first principles — `ode45` and
 `fminsearch` are the only solvers used, and no MathWorks toolbox beyond base MATLAB is required.
 
+> **Geometry:** circular coplanar low lunar orbits, chaser at 100 km, target at 400 km, initial
+> lead angle 10°. A standard homework geometry; the implementation, the verification and the
+> write-up are this repository.
+
 ## Watch
 
 [![showreel](results/figures/fig02_hohmann_geometry.png)](results/video/showreel.mp4)
@@ -40,9 +44,13 @@ limitations chapter. A [one-page French summary](docs/resume_fr.md) is also avai
 | Hold acquisition + docking Δv | **1.12 + 0.16 m/s** |
 | J2 miss without retargeting | **15.1 km** |
 | Earth third-body contribution | **116 m** |
-| CR3BP correction to the two-body design | **8.8 mm/s** |
+| Mid-course retarget against the perturbed target | **0.89 m/s** |
+| CR3BP correction to the two-body design | **−8.8 mm/s** (a saving, not a cost) |
 | Arm reach / peak joint torque at 100 N | **7.7 m** / **396 N·m** |
 | Inverse kinematics residual | **0.99 mm** in 18 iterations |
+
+Every figure in this table is read from [`results/metrics.json`](results/metrics.json), which is
+rewritten by the run that produced it.
 
 The most instructive result is not a Δv. It is the ratio of timescales: the transfer lasts
 66 minutes, waiting for the phasing window takes 9.4 hours. On a rendezvous of this kind propellant
@@ -65,9 +73,12 @@ all of it at the end of every build and writes
   −μ/2a and √(μa(1−e²)) to 10⁻¹². PASS.
 - **HCW state transition matrix** — Φ(0) = I exactly; dΦ/dt(0) reproduces the system matrix to
   2×10⁻¹⁶, which is what actually pins the Coriolis signs; Φ(t)Φ(−t) = I. PASS.
-- **Frame convention** — settled empirically, not asserted. Fed an independent implementation's
-  injection error, our targeting returns 1.419 m/s against its 1.4 m/s; the mirrored convention
-  returns 1.277 and does not reproduce it. PASS.
+- **Frame convention** — settled empirically, not asserted. The relative frame here measures +V-bar
+  **astern** of the target, which is the opposite of the usual rendezvous literature; the report
+  says so in a boxed note rather than leaving a reader to discover it. Fed an independent
+  implementation's injection error, our targeting returns 1.419 m/s against its 1.4 m/s, while the
+  ahead-positive reading returns 1.236 and does not reproduce it. That is the evidence for the
+  choice. PASS.
 - **Docking Δv** — 0.15673 against an independent 0.1567 m/s, a 0.02 % match on an
   almost geometry-only quantity. PASS.
 - **Third-body contribution** — 115.7 m against 116.0 m. This tests the indirect term in Battin's
@@ -103,8 +114,14 @@ company by about 100 m after three orbits at kilometre range, and by well under 
 hold point, where ρ/R₂ ≈ 2×10⁻⁵.
 
 **3 · Perturbations** — The same plan flown against a Cowell model with lunar J2 and the Earth as a
-third body, deliberately **without retargeting**. Sized as an impulse, removing the resulting miss
-costs roughly n₂·|miss| ≈ 10.7 m/s — the mid-course correction budget a real flight plan carries.
+third body, deliberately **without retargeting**. Pricing the correction is where it gets
+interesting. Treating the 15 km offset as a proximity manoeuvre and cancelling it with a
+Clohessy–Wiltshire two-impulse over a fraction of an orbit costs **10.7 m/s** — arithmetically
+correct, operationally the wrong answer, because a 15 km along-track offset is a 7 mrad *phase*
+error and phase is bought with time, not thrust. Retargeting properly, by single shooting inside
+the same Cowell model against the perturbed mothership, costs **0.89 m/s** with a zero residual.
+The epoch dominates: the same retarget applied halfway through the 66-minute transfer, with 33
+minutes of lever arm instead of five hours, costs 12.6 m/s.
 
 **4 · Berthing manipulator** — A five-revolute arm on a free-flying base: Grübler mobility, cylinder
 inertias, homogeneous-transform forward kinematics, and the 36×11 twist-propagation matrix **N**.
@@ -114,7 +131,10 @@ force: actuator sizing is driven by posture, not by load magnitude.
 
 **5 · CR3BP verification** — The transfer re-converged by single shooting on [δvₓ, δv_y, TOF] in the
 Earth–Moon synodic frame. The honest answer to "does the Earth matter here?": not much, and now it
-is quantified rather than assumed.
+is quantified rather than assumed. The planar shooter is rank-deficient by one, so the zero-miss set
+is a curve rather than a point: −8.8 mm/s and an independently reported +1.5 mm/s at ΔTOF ≈ +17 s
+are two members of the same family. Ten members close the rendezvous below one metre across ±40 s
+of time of flight, and the report publishes the family instead of defending a single point.
 
 **6 · Inverse kinematics** — A 5R arm cannot serve all six task degrees of freedom, so the solver
 says so out loud: weighted damped least squares with W = diag(1,1,1,1,1,0.01) spends the redundancy
@@ -122,14 +142,44 @@ on position and accepts an attitude residual. The capture is flown as a rest-to-
 
 ---
 
+## How I built it
+
+The simulation runs in base MATLAB: `ode45` for propagation, `fminsearch` for the three-body
+shooter and the mid-course retarget. No Aerospace Toolbox, no Optimization Toolbox, no external
+ephemeris. Locally that is MATLAB R2026a on Windows driving a WSL toolchain: `ffmpeg` assembles
+the showreel, `latexmk` builds the report.
+
+I used Claude Code as a coding agent — repository layout, boilerplate, the LaTeX scaffolding and
+the unattended build loop. That is a tool choice, not a claim about who owns the result. The
+authority on whether anything is correct is `tests/audit_reference.m`, which re-derives every
+design scalar in closed form from the raw constants and cross-checks the rest against an
+independent implementation of the same geometry. When the audit and the prose disagreed, the prose
+was wrong and got rewritten — twice, on the mid-course budget and on the J2 secular rate.
+
+The working loop is: write the check in `tests/`, run `run_unit_tests`, then `run_all` without
+video, and keep the patch only if the audit still reports zero failures. The PDF reads
+`docs/report/metrics.tex`, which MATLAB regenerates from the same run, so the document cannot
+quote a number the code has stopped producing.
+
+Commits list Claude as co-author because that is how the agent session was configured. The
+repository is mine.
+
 ## How to run
 
 ```matlab
->> run_all          % or: build_all
+>> run_all          % physics, figures and audit
 ```
 
-Roughly twelve minutes on a laptop: about one minute of physics, the rest rendering video and
-running the audit. From a shell:
+About **85 seconds** on a laptop — the last recorded wall time is in
+[`results/BUILD_REPORT.md`](results/BUILD_REPORT.md). Video is opt-in, because rendering the eight
+clips takes ten minutes and nothing about the science needs it:
+
+```matlab
+>> build_all('--video')     % the same plus the clips and the reel
+>> build_all('--verify')    % every tolerance and solver budget tightened
+```
+
+From a shell:
 
 ```bash
 matlab -batch "run_all"
@@ -147,8 +197,8 @@ Headless Linux needs a framebuffer for the video stage:
 xvfb-run -a matlab -batch "run_all"
 ```
 
-Useful switches in `config/mission_constants.m`: `C.makeVideo` (figures only when false),
-`C.skipAudit`, `C.videoCRF`, `C.videoRes`.
+Useful switches in `config/mission_constants.m`: `C.verify`, `C.skipAudit`, `C.videoCRF`,
+`C.videoRes`.
 
 Unit tests, under a second:
 
@@ -167,9 +217,9 @@ the simulation output, so the document cannot quote a value the code has stopped
 MATLAB cannot reach `ffmpeg`, the clips are still written and the reel can be assembled by hand with
 `./tools/concat_showreel.sh`.
 
-Outputs land in `results/`: 20 PNG figures, eight MP4 clips (the seven that make up the reel plus a
-supplementary telemetry clip), the reel itself, the PDF report, `metrics.mat`, `metrics.json`,
-`AUDIT_REPORT.md` and `BUILD_REPORT.md`.
+Outputs land in `results/`: 20 PNG figures, the 32-page PDF report, `metrics.mat`, `metrics.json`,
+`AUDIT_REPORT.md` and `BUILD_REPORT.md`. With `--video`, also eight MP4 clips — the seven that make
+up the reel plus a supplementary telemetry clip — and the reel itself.
 
 ---
 
@@ -256,8 +306,11 @@ I would rather list these than let a reader discover them. The report expands on
   phasing is a qualitatively different problem.
 - **The arm is kinematic and static.** No joint flexibility, no contact dynamics, no free-floating
   momentum coupling. The LVLH frame is treated as inertial during berthing.
-- **One random draw.** The injection error is a single realisation of seed 42, not a Monte Carlo,
-  so the proximity Δv figures are one sample rather than a distribution.
+- **The error law is assumed, even though the spread is sampled.** The headline draw is seed 42;
+  20 further state-transition-matrix draws of the same law give P05/P50/P95 of
+  0.64 / 1.01 / 1.94 m/s for the hold, recorded in
+  [`results/AUDIT_REPORT.md`](results/AUDIT_REPORT.md). What remains unjustified is the law itself:
+  a uniform magnitude with an isotropic direction stands in for a real ascent-guidance covariance.
 
 ---
 

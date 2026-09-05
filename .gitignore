@@ -21,9 +21,22 @@ docs/report/*.fdb_latexmk
 docs/report/*.synctex.gz
 docs/report/main.pdf
 
+# Build instructions and working notes for coding agents. These are how the
+# repository was made, not what it is, so they stay out of the public tree.
+CLAUDE.md
+notes/AGENTS.local.md
+notes/*.local.md
+SPEC_*.md
+PROMPT_*.txt
+LANCER_*.md
+OVERNIGHT_*.md
+*.local.md
+.claude/
+
 # MATLAB scratch
 *.asv
 *.autosave
 *.mex*
 slprj/
 codegen/
+.DS_Store

@@ -19,8 +19,8 @@
 %       $ matlab -batch "run_all"
 %       $ xvfb-run -a matlab -batch "run_all"     % headless Linux
 %
-%   The orchestration itself lives in build_all.m: parts 1 to 6, the
-%   documentation figure, the seven video clips, the showreel, metrics.mat,
-%   metrics.json and results/BUILD_REPORT.md.
+%   The orchestration itself lives in build_all.m: parts 1 to 6, the figures,
+%   the audit, metrics.mat, metrics.json and results/BUILD_REPORT.md. Video is
+%   opt-in via build_all('--video').
 
 build_all();

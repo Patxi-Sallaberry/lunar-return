@@ -95,7 +95,8 @@ same set of units.
 **The Hohmann argument survives contact with reality.** The minimum-energy two-impulse transfer is
 not a classroom idealisation that real vehicles abandon; it is the reason lunar architectures look
 the way they do. What real vehicles add is margin — the mid-course correction that Part 3 sizes at
-about 10.7 m/s once J2 is admitted into the model, and the rendezvous sensor-driven corrections that
+about 0.9 m/s once J2 is admitted into the model and the burn is placed early, and the
+rendezvous sensor-driven corrections that
 Part 2's two-impulse targeting stands in for.
 
 **The grapple fixture closes the loop.** The interface drawn at the top of the ascent stage in

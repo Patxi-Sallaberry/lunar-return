@@ -8,7 +8,7 @@ function metrics = build_all(varargin)
 %   Video is opt-in because the physics pass takes about 90 seconds and the
 %   render takes ten minutes. Nothing about the science needs the render, and
 %   the clips on disk are only invalidated by a change of relative-motion
-%   convention, which pass 4 deliberately did not make.
+%   convention.
 %
 %   This is the orchestrator. `run_all` and `00_main` are one-line aliases;
 %   the real work lives here because MATLAB identifiers cannot start with a
@@ -246,7 +246,7 @@ end
 function write_build_report(C, report, clips, ffm, m)
 fid = fopen(fullfile(C.resDir, 'BUILD_REPORT.md'), 'w');
 fprintf(fid, '# Build report\n\n');
-fprintf(fid, 'This is the overnight summary. Read it before anything else.\n\n');
+fprintf(fid, 'Summary of the last build. Read it before anything else.\n\n');
 fprintf(fid, '- date: %s\n', char(datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss')));
 fprintf(fid, '- MATLAB: %s on %s\n', version('-release'), computer);
 fprintf(fid, '- ffmpeg: %s\n', ffm.mode);

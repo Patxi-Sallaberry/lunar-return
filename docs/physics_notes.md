@@ -161,9 +161,13 @@ wired in, and the README says so.
   scope here.
 - **Co-elliptic rendezvous.** Flying the approach on orbits with the same period rather than the same
   shape makes the relative geometry insensitive to a common-mode field error.
-- **Mid-course correction.** The direct answer: budget an impulse of order `n₂·|miss| ≈ 10.7 m/s` at
-  roughly the halfway point. This is 9 % of the nominal 118.8 m/s transfer budget, which is a
-  realistic number for a design of this fidelity.
+- **Mid-course correction.** Two numbers, and only one of them is an answer. Cancelling the offset
+  as a relative-motion problem over a fraction of an orbit costs `n₂·|miss| ≈ 10.7 m/s`; that is
+  arithmetic, not operations. Retargeting properly — single shooting inside the same Cowell model,
+  against the perturbed mothership, with the impulse placed halfway through the mission — costs
+  **0.89 m/s** with a zero residual, because a 15 km along-track offset is a 7 mrad phase error and
+  phase is bought with lever arm. The same retarget applied mid-transfer, with 33 minutes left
+  instead of five hours, costs 12.6 m/s. See `lib/astro/midcourse_correction.m`.
 
 ---
 
