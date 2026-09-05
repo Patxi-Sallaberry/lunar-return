@@ -5,7 +5,7 @@ function R = anim_endcard(C, metrics)
 %   drift out of sync with the simulation.
 
 S = style();
-screen_s = 5;
+screen_s = 6;
 nF = round(screen_s * C.videoFps);
 
 rows = build_rows(metrics);

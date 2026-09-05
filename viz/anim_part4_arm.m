@@ -29,7 +29,7 @@ style_axes(ax, '', 'x [m]', 'y [m]', 'z [m]');
 axis(ax, 'equal'); view(ax, 40, 18);
 FK0 = fkine_5R(D4.q_demo(:,1), P);
 hArm = draw_arm(ax, FK0, P);
-hTrail = plot3(ax, NaN, NaN, NaN, '-', 'Color', S.hold, 'LineWidth', 2.4);
+trEE = fading_trail(ax, S.hold, struct('tail', 120, 'lw', 3.2, 'ghost', 0.42, 'is3D', true));
 hTgt = plot3(ax, D6.p_target1(1), D6.p_target1(2), D6.p_target1(3), 'p', ...
              'MarkerSize', 20, 'MarkerFaceColor', S.dock, 'MarkerEdgeColor', 'none', ...
              'Visible', 'off');
@@ -93,25 +93,28 @@ R = render_clip(fig, @frame, nF, '06_arm', C);
 
         if k > nA
             trail(:, k) = FK.p_EE;
-            set(hTrail, 'XData', trail(1,:), 'YData', trail(2,:), 'ZData', trail(3,:));
+            update_trail(trEE, trail(1,:), trail(2,:), trail(3,:), k, nA+1);
             set(hTgt, 'Visible', 'on');
         end
 
-        view(ax, 40 + 22*sin(2*pi*k/nF), 18 + 6*sin(4*pi*k/nF));
+        % Slow orbit of +-25 deg in azimuth, per the art direction, plus a
+        % gentler elevation sway so the 3-D structure reads without the frame
+        % ever feeling like it is being swung around.
+        view(ax, 40 + 25*sin(2*pi*k/nF), 18 + 7*sin(4*pi*k/nF));
         camlight(hl, 'headlight');
 
         flash = '';
-        if k <= 14
+        if k <= 12
             flash = phaseName;
-        elseif k == nA + 1 || (k > nA && k <= nA + 14)
+        elseif k > nA && k <= nA + 12
             flash = 'CAPTURE';
-        elseif k > nF - 18
+        elseif k > nF - 14
             flash = 'CONTACT';
             set(hArm.ee, 'MarkerFaceColor', S.dock);
         end
 
-        hud_set(hud, {sprintf('%5.1f s', tShow), sprintf('%.2f m', norm(FK.p_EE)), ...
-                      sprintf('%.0f N m', max(abs(tau(7:end)))), rateStr}, ...
+        hud_set(hud, {sprintf('%5.1f s', tShow), sprintf('%6.2f m', norm(FK.p_EE)), ...
+                      sprintf('%4.0f N m', max(abs(tau(7:end)))), rateStr}, ...
                 {'SEQUENCE TIME', 'EE REACH', 'PEAK |\tau|', 'TIME RATE'}, flash);
     end
 end

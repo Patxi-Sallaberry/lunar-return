@@ -1,0 +1,233 @@
+\section{Berthing manipulator: kinematics and kineto-statics}
+\label{sec:robotics}
+
+\subsection{From docking to berthing}
+
+Section~\ref{sec:proximity} delivered the chaser to the docking port with a
+residual velocity of zero. In practice the last metres of a crewed vehicle's
+arrival are frequently handled by a manipulator rather than by thrusters:
+berthing removes the closing-rate risk, avoids plume impingement on the target,
+and allows the capture to be aborted at any instant. This part characterises a
+five-revolute arm sized for that job.
+
+\subsection{Mobility}
+
+The arm has five revolute joints connecting six bodies including the base.
+Gr\"ubler's criterion in three dimensions gives
+
+\begin{equation}
+\text{DOF} = 6(N - 1 - J) + \sum_{i=1}^{J} f_i = 6(6-1-5) + 5 = 5,
+\label{eq:grubler}
+\end{equation}
+
+so the arm alone has five degrees of freedom. Mounted on a free-flying base the
+system has $5 + 6 = 11$. Three operating modes follow, and they are genuinely
+different control problems: \emph{free-flying}, where the base pose is actively
+held by thrusters; \emph{attitude-controlled}, where only orientation is held and
+the base translates; and \emph{free-floating}, where nothing is actuated at the
+base and total linear and angular momentum are conserved, so every arm motion
+disturbs the carrier. This report assumes the free-flying case, which makes the
+base pose a boundary condition rather than a state.
+
+\subsection{Geometry and inertia}
+
+Links are modelled as homogeneous cylinders of radius $R_c = 0.15\unit{m}$ with
+the local $z$ axis along the link, so the centre of mass is at mid-length and
+
+\begin{equation}
+I_{zz} = \tfrac12 m R_c^2, \qquad
+I_{xx} = I_{yy} = \tfrac{1}{12} m\left(3R_c^2 + L^2\right).
+\label{eq:inertia}
+\end{equation}
+
+\begin{table}[htbp]
+\centering
+\caption{Link parameters. Total mass $\mArmMass\unit{kg}$, fully extended reach
+$\mReach\unit{m}$. Joint axes are given in the local joint frame before the
+joint rotation is applied.}
+\label{tab:links}
+\small
+\begin{tabular}{crrrrc}
+\toprule
+Link & $m$ [kg] & $L$ [m] & $I_{xx}=I_{yy}$ [kg\,m$^2$] & $I_{zz}$ [kg\,m$^2$] & axis \\
+\midrule
+1 & $30$  & $0.60$ & $1.07$  & $0.34$ & $z$ \\
+2 & $100$ & $3.20$ & $85.90$ & $1.13$ & $y$ \\
+3 & $85$  & $2.80$ & $56.01$ & $0.96$ & $y$ \\
+4 & $20$  & $0.60$ & $0.71$  & $0.23$ & $y$ \\
+5 & $15$  & $0.50$ & $0.40$  & $0.17$ & $x$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Forward kinematics}
+
+Frames are placed at the link centres of mass with $z$ along the link, and
+offsets are pure $z$ translations: $g_i = L_i/2$ from joint $i$ to the centre of
+mass of link $i$, and $b_i = L_i/2$ from that centre of mass to joint $i+1$. The
+chain is
+
+\begin{equation}
+T_i = T_{i-1}\, \mathrm{Trans}(b_{i-1})\, \mathrm{Rot}(\mathbf e_i, \theta_i)\, \mathrm{Trans}(g_i),
+\label{eq:chain}
+\end{equation}
+
+with the rotation built from the Euler--Rodrigues formula
+
+\begin{equation}
+R(\mathbf e, \theta) = \cos\theta\, I + (1-\cos\theta)\,\mathbf e\mathbf e^\top + \sin\theta\,[\mathbf e\times].
+\label{eq:rodrigues}
+\end{equation}
+
+The end-effector frame is one further half-link beyond the last centre of mass,
+at the physical tip.
+
+For the acceptance pose $\boldsymbol\theta = [0, 45, 0, 60, 0]^\circ$ the chain
+returns a rotation of exactly $R_y(105^\circ)$ -- joints 2, 3 and 4 share the
+$y$ axis, so only their sum matters -- and a tip position of
+$[5.305, 0, 4.558]^\top\unit{m}$. Both reproduce the reference pose to
+$6\times10^{-5}$.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{fig14_fkine_verification.png}
+\caption{Forward kinematics at the acceptance pose. Left: three-dimensional
+rendering with the end-effector triad. Right: $xz$ projection with the joint
+origins labelled. Reach at this pose is $6.99\unit{m}$ of the $\mReach\unit{m}$
+maximum.}
+\label{fig:fk}
+\end{figure}
+
+\subsection{Twist propagation and kineto-static duality}
+
+Velocities are propagated with a system Jacobian mapping the eleven generalised
+velocities to the six body twists,
+
+\begin{equation}
+\mathbf t = N\,\mathbf u, \qquad
+\mathbf u = \begin{bmatrix}\boldsymbol\omega_0 \\ \dot{\mathbf r}_0 \\ \dot{\mathbf q}\end{bmatrix} \in \mathbb{R}^{11},
+\qquad \mathbf t \in \mathbb{R}^{36},
+\qquad N = N_l N_d .
+\label{eq:N}
+\end{equation}
+
+Here $N_d = \mathrm{blkdiag}(I_6, \mathbf p_1, \dots, \mathbf p_5)$ injects each
+joint rate into its own body with
+$\mathbf p_i = [\mathbf e_i;\ \mathbf e_i\times\mathbf g_i]$ in inertial axes,
+and $N_l$ is block lower triangular with unit diagonal and rigid-body transports
+
+\begin{equation}
+B_{ij} = \begin{bmatrix} I_3 & 0 \\ [(\mathbf r_j - \mathbf r_i)\times] & I_3 \end{bmatrix}.
+\label{eq:transport}
+\end{equation}
+
+The sign is the part worth checking: $\mathbf v_i = \mathbf v_j + \boldsymbol\omega_j\times(\mathbf r_i - \mathbf r_j)$
+and $\boldsymbol\omega_j\times\mathbf d = -[\mathbf d\times]\boldsymbol\omega_j$,
+hence $[(\mathbf r_j - \mathbf r_i)\times]$ and not the reverse. Getting it
+backwards produces a base reaction whose force is right and whose moment is
+wrong -- a failure mode that no plot reveals and that the tests of
+Section~\ref{sec:robotics:verif} catch immediately.
+
+In micro-gravity with a single external wrench at the end effector, static
+equilibrium gives the generalised forces by duality,
+
+\begin{equation}
+\boldsymbol\tau = N^\top \mathbf w,
+\label{eq:duality}
+\end{equation}
+
+where $\mathbf w$ stacks the body wrenches ordered $[\text{moment};\text{force}]$
+to match the $[\boldsymbol\omega; \mathbf v]$ twist ordering. Only the last body
+is loaded, with the contact wrench transported from the tip to the centre of
+mass of link 5. The actuators and the attitude control system must supply
+$-\boldsymbol\tau$.
+
+\subsection{Load cases}
+
+Two contact wrenches are applied at three postures: a purely axial
+$\mathbf F = [0,0,-100]^\top\unit{N}$ representing a nominal berthing push, and a
+misaligned $\mathbf F = [15,-10,-80]^\top\unit{N}$ with
+$\mathbf M = [12,8,-5]^\top\unit{N\,m}$ representing an off-nominal capture.
+
+\begin{table}[htbp]
+\centering
+\caption{Joint torques [N\,m] under the $100\unit{N}$ axial berthing load. The
+base reaction force is $100.00\unit{N}$ in every case, as a static chain loaded
+by a single external force requires.}
+\label{tab:torque1}
+\small
+\begin{tabular}{lrrrrrr}
+\toprule
+Posture & $\tau_1$ & $\tau_2$ & $\tau_3$ & $\tau_4$ & $\tau_5$ & $\lVert\mathbf n_{\text{base}}\rVert$ \\
+\midrule
+Nearly extended & $0.00$   & $79.97$   & $24.40$   & $0.00$  & $0.00$ & $79.97$ \\
+Folded          & $0.00$   & $396.47$  & $95.77$   & $0.00$  & $0.00$ & $435.03$ \\
+General spatial & $131.18$ & $-339.41$ & $-194.40$ & $0.00$  & $0.00$ & $486.30$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Joint torques [N\,m] under the misaligned wrench. Base reaction force
+$82.01\unit{N}$ throughout. Note that $\tau_1$ and $\tau_5$, identically zero in
+the axial case, are now loaded.}
+\label{tab:torque2}
+\small
+\begin{tabular}{lrrrrrr}
+\toprule
+Posture & $\tau_1$ & $\tau_2$ & $\tau_3$ & $\tau_4$ & $\tau_5$ & $\lVert\mathbf n_{\text{base}}\rVert$ \\
+\midrule
+Nearly extended & $-13.00$ & $177.59$  & $85.86$   & $24.50$ & $17.00$ & $206.88$ \\
+Folded          & $-9.54$  & $364.72$  & $140.58$  & $24.50$ & $17.00$ & $407.65$ \\
+General spatial & $62.26$  & $-193.62$ & $-112.42$ & $25.16$ & $17.00$ & $279.64$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Four observations follow, and they are the engineering content of the tables.
+
+\begin{itemize}
+\item With the arm nearly extended and the load axial, the force runs along the
+      links. The $y$-axis joints see a short moment arm and the shoulder carries
+      only $80\unit{N\,m}$.
+\item Folding the arm turns the same $100\unit{N}$ into a long transverse lever
+      and the shoulder torque rises to $\mTauMax\unit{N\,m}$, the largest value
+      in the study. Actuator sizing is driven by posture, not by load magnitude.
+\item The axial load leaves the base turret ($\tau_1$) and the wrist roll
+      ($\tau_5$) at exactly zero, because their axes are parallel to the force or
+      pass through its line of action. The misaligned wrench activates both.
+      A capture mechanism designed only for the nominal case would under-size
+      precisely these two actuators.
+\item Masses appear nowhere in either table. In micro-gravity the static problem
+      is mass-free; the inertias of Table~\ref{tab:links} would enter the mass
+      matrix and Coriolis terms of the free-floating dynamics, which this report
+      does not integrate.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{fig15_three_postures.png}
+\caption{The three study postures under the $100\unit{N}$ axial berthing load
+(arrow). Shoulder torque rises fivefold from the extended to the folded
+configuration for an identical applied force.}
+\label{fig:postures}
+\end{figure}
+
+\subsection{Verification}
+\label{sec:robotics:verif}
+
+Two statements must hold for a static chain loaded by a single external wrench,
+and both are tested at every posture and load case:
+
+\begin{enumerate}[label=(\roman*)]
+\item the force part of the base reaction equals the applied force exactly, and
+      the moment part equals $\mathbf M_{\text{tip}} + (\mathbf r_{\text{tip}} - \mathbf r_{\text{base}})\times\mathbf F$;
+\item the joint torques obtained from the $36\times11$ twist-propagation route
+      equal those obtained from the $6\times5$ end-effector Jacobian,
+      $\boldsymbol\tau_m = J^\top[\mathbf f; \mathbf n]$.
+\end{enumerate}
+
+The worst residuals are $2\times10^{-14}\unit{N}$ and $\mDualRes\unit{N\,m}$.
+Two entirely different pieces of algebra agreeing to machine precision is
+stronger evidence than either one looking plausible on its own.

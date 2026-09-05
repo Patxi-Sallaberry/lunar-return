@@ -1,0 +1,128 @@
+\section{Inverse kinematics and the capture manoeuvre}
+\label{sec:ik}
+
+\subsection{A five-joint arm in a six-dimensional task space}
+
+The manipulator has five joints; a rigid-body pose has six degrees of freedom.
+The pose problem is therefore structurally unsolvable in general, and a solver
+that hides this fact by converging to something is worse than one that does not
+converge. The approach taken here states the deficiency in the weighting and
+reports the residual it leaves.
+
+\subsection{Spatial error}
+
+Given a target pose $(\mathbf p_t, R_t)$ and the current pose
+$(\mathbf p_k, R_k)$ with columns $\mathbf x_k, \mathbf y_k, \mathbf z_k$, the
+task error is
+
+\begin{equation}
+\Delta\mathbf p = \mathbf p_t - \mathbf p_k, \qquad
+\mathbf e_o = \tfrac12\left(\mathbf x_k\times\mathbf x_t + \mathbf y_k\times\mathbf y_t + \mathbf z_k\times\mathbf z_t\right),
+\qquad
+\Delta\mathbf x = \begin{bmatrix}\Delta\mathbf p \\ \mathbf e_o\end{bmatrix}.
+\label{eq:taskerr}
+\end{equation}
+
+The orientation error uses the Siciliano form \cite{siciliano} rather than
+axis-angle extraction, which is singular at $\pm180^\circ$. That is not a
+theoretical concern here: the seeds used are far from the target and rotations
+near $180^\circ$ genuinely occur on the first iterations.
+
+\subsection{Weighted damped least squares}
+
+The geometric Jacobian is assembled column by column for revolute joints,
+
+\begin{equation}
+J_i = \begin{bmatrix} \mathbf z_{i}\times(\mathbf p_{EE} - \mathbf r_{i}) \\ \mathbf z_{i}\end{bmatrix},
+\label{eq:jacobian}
+\end{equation}
+
+ordered $[\text{linear};\text{angular}]$ to match~\eqref{eq:taskerr}, and the
+update is
+
+\begin{equation}
+\boldsymbol\theta \leftarrow \boldsymbol\theta + \alpha\left(J^\top W J + \lambda^2 I\right)^{-1} J^\top W \Delta\mathbf x,
+\label{eq:wdls}
+\end{equation}
+
+with $\lambda = 0.05$, $\alpha = 0.4$ and
+$W = \mathrm{diag}(1,1,1,1,1,0.01)$. The damping keeps the update bounded near
+singular configurations; the weighting spends the available freedom on position
+and de-emphasises the one attitude component a five-joint wrist cannot serve.
+
+\subsection{A real singularity at the obvious seed}
+
+The stowed configuration $\boldsymbol\theta = \mathbf 0$ is not a neutral
+starting point. Fully extended along $z$, joint~1 rotates about an axis passing
+through the end effector, so it produces no end-effector translation at all and
+the position Jacobian loses a column. The solver escapes because the attitude
+term still torques joint~1, but the code carries a deterministic seed cascade
+anyway and logs which seed was used, rather than pretending the singularity is
+not there.
+
+\subsection{Results}
+
+Two targets are run. The first is the forward-kinematics pose of a known
+configuration, so an exact solution provably exists and the convergence claim
+means something. Starting from the zero pose the solver reaches
+$\mIKres\unit{mm}$ in $\mIKiters$ iterations, well inside the $80$-iteration
+budget.
+
+The solution found is \emph{not} the configuration the target was generated
+from: the solver returns $[40.0, 16.3, 20.1, 28.6, 25.0]^\circ$ against the
+generating $[40, 35, -20, 50, 25]^\circ$. Both reach the same pose because
+joints 2, 3 and 4 rotate about a common axis and only their sum enters -- $65^\circ$
+in both cases. Multiple inverse solutions are the expected behaviour of a serial
+chain, not a defect.
+
+The second target is operationally motivated: a point $0.4\unit{m}$ in front of
+the mothership docking face with the tool axis along $+x$. Position converges to
+$\mIKtwoRes\unit{mm}$ and a small attitude residual survives, which is precisely
+the structural deficiency admitted at the start of this section.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{fig20_ik_convergence.png}
+\caption{Left: WDLS convergence for both targets, log scale. Position residual
+falls below $1\unit{mm}$ in $\mIKiters$ iterations. Right: the capture path of
+the end effector from the stowed pose to the solution, with the final
+configuration overlaid.}
+\label{fig:ik}
+\end{figure}
+
+\subsection{Rest-to-rest joint trajectory}
+
+The capture is flown as a cubic in joint space over $t_f = 30\unit{s}$ with zero
+rate at both ends,
+
+\begin{equation}
+\theta(t) = \theta_0 + \frac{3\Delta\theta}{t_f^2}t^2 - \frac{2\Delta\theta}{t_f^3}t^3,
+\qquad
+\dot\theta(t) = \frac{6\Delta\theta}{t_f^2}t - \frac{6\Delta\theta}{t_f^3}t^2 .
+\label{eq:cubic}
+\end{equation}
+
+A cubic rather than a quintic is a deliberate choice: berthing rates are slow
+enough that the discontinuous acceleration at the endpoints is harmless, and the
+velocity profile stays trivially verifiable. The peak rate is
+$1.5\,\Delta\theta/t_f$ at mid-time, here $0.035\unit{rad/s}$, and the end
+effector travels $4.12\unit{m}$ along the capture path.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{fig17_joint_trajectory.png}
+\caption{Rest-to-rest cubic joint trajectory over $30\unit{s}$. Rates start and
+end at exactly zero, which is checked to $10^{-17}\unit{rad/s}$ rather than read
+off the plot.}
+\label{fig:cubic}
+\end{figure}
+
+\subsection{Verification}
+
+The boundary conditions of~\eqref{eq:cubic} are checked symbolically against the
+sampled trajectory: $\theta(0) = \theta_0$ and $\theta(t_f) = \theta^*$ to
+$10^{-16}$, $\dot\theta(0) = \dot\theta(t_f) = 0$ to $10^{-17}$, and the peak
+rate matches the analytical $1.5\Delta\theta/t_f$ exactly. The inverse-kinematics
+solution is verified the only way that is meaningful for an iterative solver: by
+pushing the returned joint vector back through the forward kinematics of
+Section~\ref{sec:robotics} and measuring the pose it actually produces.

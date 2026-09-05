@@ -2,12 +2,12 @@
 
 This is the overnight summary. Read it before anything else.
 
-- date: 2026-09-04 23:43:38
+- date: 2026-09-05 06:14:41
 - MATLAB: 2026a on PCWIN64
 - ffmpeg: wsl
-- elapsed: 09:59
+- elapsed: 08:55
 - figures: 20 PNG
-- clips: 97.0 s across 8 files; the showreel concatenates the seven numbered ones
+- clips: 99.0 s across 8 files; the showreel concatenates the seven numbered ones
 
 | stage | result |
 |---|---|
@@ -34,13 +34,13 @@ This is the overnight summary. Read it before anything else.
 | clip | seconds | encoder |
 |---|---|---|
 | 01_title | 4.0 | mp4 |
-| 02_hohmann | 20.0 | mp4 |
-| 03_proximity | 19.0 | mp4 |
-| 04_perturbations | 13.0 | mp4 |
-| 05_cr3bp | 10.0 | mp4 |
+| 02_hohmann | 18.0 | mp4 |
+| 03_proximity | 20.0 | mp4 |
+| 04_perturbations | 14.0 | mp4 |
+| 05_cr3bp | 11.0 | mp4 |
 | 06_arm | 16.0 | mp4 |
 | 06b_ik_telemetry | 10.0 | mp4 |
-| 07_endcard | 5.0 | mp4 |
+| 07_endcard | 6.0 | mp4 |
 
 ## Headline numbers
 

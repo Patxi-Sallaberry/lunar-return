@@ -23,11 +23,15 @@ tic;
 
 if ~exist(C.clipDir, 'dir'), mkdir(C.clipDir); end
 outFile = fullfile(C.clipDir, [clipName '.mp4']);
+% VideoWriter cannot express a CRF, so it writes an intermediate that ffmpeg
+% then transcodes to the delivery encode. When ffmpeg is unavailable the
+% intermediate simply becomes the deliverable.
+rawFile = fullfile(C.clipDir, [clipName '_raw.mp4']);
 
 vw = [];
 useVW = false;
 try
-    vw = VideoWriter(outFile, 'MPEG-4');
+    vw = VideoWriter(rawFile, 'MPEG-4');
     vw.FrameRate = C.videoFps;
     vw.Quality   = 95;
     open(vw);
@@ -59,6 +63,7 @@ try
     end
 catch ME
     if useVW && ~isempty(vw), close(vw); end
+    if exist(rawFile, 'file'), delete(rawFile); end
     close(fig);
     R.status = 'failed';
     R.note = getReport(ME, 'basic');
@@ -69,7 +74,26 @@ end
 
 if useVW
     close(vw);
-    R.status = 'mp4';
+    F = find_ffmpeg();
+    if F.found
+        cmd = sprintf(['%s -y -loglevel error -i "%s" -c:v libx264 ' ...
+                       '-preset slow -crf %d -pix_fmt yuv420p ' ...
+                       '-movflags +faststart "%s"'], ...
+                       F.prefix, to_shell_path(rawFile, F.mode), C.videoCRF, ...
+                       to_shell_path(outFile, F.mode));
+        if sys_quiet(cmd) == 0
+            delete(rawFile);
+            R.status = 'mp4';
+        else
+            movefile(rawFile, outFile, 'f');
+            R.status = 'mp4';
+            R.note = 'CRF transcode failed, kept the VideoWriter encode';
+        end
+    else
+        movefile(rawFile, outFile, 'f');
+        R.status = 'mp4';
+        R.note = 'no ffmpeg, kept the VideoWriter encode';
+    end
     R.file = outFile;
 else
     F = find_ffmpeg();

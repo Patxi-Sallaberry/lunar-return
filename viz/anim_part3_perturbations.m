@@ -12,7 +12,7 @@ S = style();
 t_end = D.t(end);
 segs = struct('t0', {0, D.t_burn, t_end}, ...
               't1', {D.t_burn, t_end, t_end}, ...
-              'screen_s', {4, 6, 3});
+              'screen_s', {4.5, 6.5, 3});
 [idx, tSel, segId] = timewarp(D.t, segs, C.videoFps);
 nF = numel(idx);
 
@@ -27,9 +27,13 @@ ax = axes('Parent', fig, 'Position', [0.070 0.180 0.400 0.695]);
 style_axes(ax, '', 'x [km]', 'y [km]');
 axis(ax, 'equal');
 draw_moon(ax, C.RMoon);
-hKep = plot(ax, NaN, NaN, '-',  'Color', S.LM, 'LineWidth', 2.6);
-hPer = plot(ax, NaN, NaN, '--', 'Color', S.J2, 'LineWidth', 2.6);
-hMS  = plot(ax, NaN, NaN, '-',  'Color', [S.MS 0.8], 'LineWidth', 1.8);
+trKep = fading_trail(ax, S.LM, struct('tail', 320, 'lw', 3.0, 'ghost', 0.38));
+trMS  = fading_trail(ax, S.MS, struct('tail', 320, 'lw', 2.4, 'ghost', 0.24));
+hPer  = plot(ax, NaN, NaN, '--', 'Color', S.J2, 'LineWidth', 2.8);
+% Proxy handles: never given data, they exist only so the legend can show the
+% swatches for the two trails, which are stacks of line objects.
+hKep  = plot(ax, NaN, NaN, '-', 'Color', S.LM, 'LineWidth', 2.6);
+hMS   = plot(ax, NaN, NaN, '-', 'Color', [S.MS 0.8], 'LineWidth', 1.8);
 hLMk = plot(ax, NaN, NaN, 'o', 'MarkerSize', 11, 'MarkerFaceColor', S.LM,  'MarkerEdgeColor','none');
 hLMp = plot(ax, NaN, NaN, 'o', 'MarkerSize', 11, 'MarkerFaceColor', S.J2,  'MarkerEdgeColor','none');
 hMSm = plot(ax, NaN, NaN, 's', 'MarkerSize', 12, 'MarkerFaceColor', S.MS,  'MarkerEdgeColor','none');
@@ -62,9 +66,9 @@ R = render_clip(fig, @frame, nF, '04_perturbations', C);
 % ------------------------------------------------------------------ frame --
     function frame(k)
         i = idx(k);
-        set(hKep, 'XData', D.rLM_kep(1,1:i), 'YData', D.rLM_kep(2,1:i));
+        update_trail(trKep, D.rLM_kep(1,:), D.rLM_kep(2,:), [], i);
+        update_trail(trMS,  D.rMS_3b(1,:),  D.rMS_3b(2,:),  [], i);
         set(hPer, 'XData', D.rLM_3b(1,1:i),  'YData', D.rLM_3b(2,1:i));
-        set(hMS,  'XData', D.rMS_3b(1,1:i),  'YData', D.rMS_3b(2,1:i));
         set(hLMk, 'XData', D.rLM_kep(1,i),   'YData', D.rLM_kep(2,i));
         set(hLMp, 'XData', D.rLM_3b(1,i),    'YData', D.rLM_3b(2,i));
         set(hMSm, 'XData', D.rMS_3b(1,i),    'YData', D.rMS_3b(2,i));
@@ -89,9 +93,9 @@ R = render_clip(fig, @frame, nF, '04_perturbations', C);
         end
 
         rate = (segs(segId(k)).t1 - segs(segId(k)).t0) / segs(segId(k)).screen_s;
-        if rate > 0, rateStr = sprintf('x %.0f', rate); else, rateStr = 'HOLD'; end
-        hud_set(hud, {hms(tSel(k)), sprintf('%.1f km', range_km(i)), ...
-                      sprintf('%.3f km', drift_km(i)), rateStr}, ...
+        if rate > 0, rateStr = sprintf('x%4.0f', rate); else, rateStr = 'HOLD'; end
+        hud_set(hud, {hms(tSel(k)), sprintf('%7.1f km', range_km(i)), ...
+                      sprintf('%6.2f km', drift_km(i)), rateStr}, ...
                 {'MISSION TIME', 'LM-MS RANGE', 'DRIFT vs KEPLER', 'TIME RATE'}, flash);
     end
 end

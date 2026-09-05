@@ -1,0 +1,201 @@
+\section{Orbital transfer and phasing}
+\label{sec:transfer}
+
+\subsection{Hohmann geometry}
+
+The minimum-energy two-impulse transfer between coplanar circular orbits is an
+ellipse tangent to both \cite{curtis}. With $R_1$ and $R_2$ the two radii,
+
+\begin{equation}
+a = \frac{R_1 + R_2}{2}, \qquad
+e = \frac{R_2 - R_1}{R_2 + R_1},
+\label{eq:ellipse}
+\end{equation}
+
+giving $a = \mSMA\unit{km}$ and $e = \mEcc$. Circular and elliptical speeds
+follow from the vis-viva equation,
+
+\begin{equation}
+v_c(r) = \sqrt{\frac{\mu_M}{r}}, \qquad
+v(r) = \sqrt{\mu_M\!\left(\frac{2}{r} - \frac{1}{a}\right)},
+\label{eq:visviva}
+\end{equation}
+
+and because the transfer is tangent at both ends the two impulses are purely
+along-track:
+
+\begin{equation}
+\dv_1 = v(R_1) - v_c(R_1), \qquad
+\dv_2 = v_c(R_2) - v(R_2).
+\label{eq:dv}
+\end{equation}
+
+The time of flight is half the ellipse period,
+$\Delta t = \pi\sqrt{a^3/\mu_M} = \mTOF\unit{s}$, i.e.\ $\mTOFmin$ minutes.
+Table~\ref{tab:hohmann} collects the design.
+
+\begin{table}[htbp]
+\centering
+\caption{Hohmann transfer design, $100 \to 400\unit{km}$ circular lunar orbit.
+The two impulses together cost $\mDVtot\unit{m/s}$, which is the reference
+against which every later correction is measured.}
+\label{tab:hohmann}
+\small
+\begin{tabular}{lrl}
+\toprule
+Quantity & Value & Unit \\
+\midrule
+Semi-major axis $a$              & \mSMA   & km \\
+Eccentricity $e$                 & \mEcc   & -- \\
+Circular speed at $R_1$          & 1.6335  & km/s \\
+Circular speed at $R_2$          & 1.5145  & km/s \\
+Ellipse speed at periapsis       & 1.6940  & km/s \\
+Ellipse speed at apoapsis        & 1.4563  & km/s \\
+\midrule
+Departure impulse $\dv_1$        & \mDVone & m/s \\
+Arrival impulse $\dv_2$          & \mDVtwo & m/s \\
+\textbf{Total} $\dv$             & \textbf{\mDVtot} & \textbf{m/s} \\
+Time of flight                   & \mTOF   & s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Phasing: why the vehicle waits nine hours}
+
+Designing the ellipse is the easy half. The chaser may only ignite when the
+geometry places the target at the arrival point at the arrival time.
+
+During the transfer the chaser sweeps exactly $\pi$ radians while the target
+advances $n_2 \Delta t$, with $n_i = \sqrt{\mu_M/R_i^3}$. Rendezvous therefore
+requires the target to lead the chaser at ignition by
+
+\begin{equation}
+\Delta\theta_H = \pi - n_2 \Delta t = \mLeadDeg^\circ .
+\label{eq:leadangle}
+\end{equation}
+
+At the epoch the target leads by only $\phi_0 = 10^\circ$. Because the inner
+orbit is the faster one, the target's apparent lead \emph{decreases} at the
+relative rate $|n_2 - n_1|$: the required $\mLeadDeg^\circ$ will not grow back
+from $10^\circ$, it has just been missed. The chaser must wait for the lead to
+run down through zero and all the way round:
+
+\begin{equation}
+\Delta\theta_{\text{req}} = 2\pi - (\Delta\theta_H - \phi_0), \qquad
+t_{\text{wait}} = \frac{\Delta\theta_{\text{req}}}{|n_2 - n_1|} = \mTwait\unit{s}
+= \mTwaitH\unit{h}.
+\label{eq:twait}
+\end{equation}
+
+The implementation carries the general conditional, so a geometry in which the
+window has \emph{not} been missed takes the short branch instead. Total mission
+duration is $\mTmissionH\unit{h}$, of which the transfer itself is barely an
+hour. That ratio is the operationally interesting result of this section:
+in a rendezvous of this kind, propellant is cheap and patience is the
+constraint.
+
+The rendezvous closes exactly by construction. At arrival the chaser is at
+$n_1 t_{\text{wait}} + \pi$ and the target at
+$\phi_0 + n_2(t_{\text{wait}} + \Delta t)$; substituting~\eqref{eq:twait} makes
+the difference exactly $2\pi$.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{fig02_hohmann_geometry.png}
+\caption{Transfer geometry at the epoch (left) and at ignition (right). The
+target leads by $10^\circ$ at $t=0$ but the manoeuvre needs $\mLeadDeg^\circ$,
+so the chaser coasts $\mTwaitH$ hours on the inner orbit before the burn. The
+dashed ellipse is the $\mDVtot\unit{m/s}$ transfer.}
+\label{fig:geometry}
+\end{figure}
+
+\subsection{Numerical propagation}
+
+The full timeline is integrated in Cartesian coordinates with the unperturbed
+two-body field,
+
+\begin{equation}
+\dot{\mathbf r} = \mathbf v, \qquad
+\dot{\mathbf v} = -\mu_M \frac{\mathbf r}{\lVert \mathbf r \rVert^3},
+\label{eq:twobody}
+\end{equation}
+
+using \texttt{ode45} at relative and absolute tolerances of $10^{-12}$. At
+$t = t_{\text{wait}}$ the departure impulse is applied along the instantaneous
+velocity unit vector; at apoapsis the second impulse circularises the orbit so
+that the constants of motion display a third plateau.
+
+\subsection{Verification against the closed-form solution}
+\label{sec:transfer:verif}
+
+The same timeline is then evaluated analytically and differenced. Circular legs
+are trivial. On the transfer ellipse the mean anomaly $M = n_H (t - t_{\text{wait}})$
+is inverted for the eccentric anomaly by Newton--Raphson,
+
+\begin{equation}
+E_{k+1} = E_k - \frac{E_k - e\sin E_k - M}{1 - e\cos E_k},
+\label{eq:kepler}
+\end{equation}
+
+iterated to $10^{-14}$, and the perifocal state
+
+\begin{equation}
+\mathbf r_{pf} = \begin{bmatrix} a(\cos E - e) \\ a\sqrt{1-e^2}\,\sin E \\ 0 \end{bmatrix}
+\label{eq:perifocal}
+\end{equation}
+
+is rotated into MCI by $R_z(\theta_p)$, with $\theta_p$ the ignition longitude.
+
+Over the whole $\mTmissionH\unit{h}$ timeline the two solutions differ by at most
+$\mKeplerErrMm\unit{mm}$ in position, and the numerically propagated rendezvous
+closes to $\mMissKep\unit{m}$. This is the single most important number in the
+report: it is the licence to believe every perturbed result that follows.
+When Section~\ref{sec:perturbations} reports a $\mMissJtwo\unit{km}$ miss under
+$J_2$, we know that $15\unit{km}$ is physics and not integrator drift, because
+the same integrator reproduces the analytical solution to a fifth of a
+millimetre.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.93\textwidth]{fig04_position_errors.png}
+\caption{Difference between the \texttt{ode45} solution and the closed-form
+Kepler solution over the full timeline, log scale. The error grows smoothly to
+$\mKeplerErrMm\unit{mm}$, three orders of magnitude below the $1\unit{mm}$
+acceptance line. Dashed verticals mark the two impulses.}
+\label{fig:keplererr}
+\end{figure}
+
+\subsection{Constants of motion}
+
+For a further independent check the specific energy, angular momentum and
+eccentricity vector are evaluated along the trajectory,
+
+\begin{equation}
+\varepsilon = \frac{v^2}{2} - \frac{\mu_M}{r}, \qquad
+\mathbf h = \mathbf r \times \mathbf v, \qquad
+\mathbf e = \frac{1}{\mu_M}\!\left[\left(v^2 - \frac{\mu_M}{r}\right)\mathbf r - (\mathbf r \cdot \mathbf v)\mathbf v\right].
+\label{eq:constants}
+\end{equation}
+
+These must be piecewise constant, stepping only at the two impulses.
+Table~\ref{tab:constants} compares the simulated plateaus with the closed-form
+values $\varepsilon = -\mu_M/2a$ and $\lVert\mathbf h\rVert = \sqrt{\mu_M a(1-e^2)}$;
+they agree to twelve significant figures.
+
+\begin{table}[htbp]
+\centering
+\caption{Constants of motion per leg. Analytical and simulated values agree to
+better than $10^{-12}$ relative, confirming that the impulses are applied
+cleanly and that no energy leaks through the integrator.}
+\label{tab:constants}
+\small
+\begin{tabular}{lrrr}
+\toprule
+Leg & $e$ & $\lVert\mathbf h\rVert$ [km$^2$/s] & $\varepsilon$ [km$^2$/s$^2$] \\
+\midrule
+Inner circular   & $0$      & $3001.40$ & $-1.33417$ \\
+Transfer ellipse & $\mEcc$  & $3112.61$ & $-1.23347$ \\
+Outer circular   & $0$      & $3237.17$ & $-1.14691$ \\
+\bottomrule
+\end{tabular}
+\end{table}

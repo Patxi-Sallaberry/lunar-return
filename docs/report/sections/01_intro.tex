@@ -1,0 +1,114 @@
+\section{Introduction}
+
+\subsection{The problem}
+
+Every crewed lunar architecture that has flown, and every one currently
+proposed, splits the vehicle in two. A descent stage carries the landing gear,
+the throttleable engine and the surface consumables, and it stays where it
+lands. Only an ascent stage returns to orbit. The reason is arithmetic: mass
+that does not have to be re-accelerated to lunar orbital speed does not have to
+be carried from Earth in the first place. Apollo used this split six times, and
+the Artemis Human Landing System requirements inherit it \cite{nasa_artemis}.
+
+The consequence is that the return leg is a rendezvous problem, and a harder one
+than the launch. The ascent stage flies on a single engine with no aerodynamic
+stabilisation, no throttle authority, a centre of mass that migrates as the
+tanks drain, and an inertia tensor with significant off-diagonal terms. Its
+guidance can steer the thrust vector and choose when to stop, but it cannot trim
+the acceleration profile. Whatever mismatch remains between predicted and actual
+performance appears directly as a velocity error at cut-off. From orbit, an
+ascent stage is completely described by the dispersed state it delivers, and
+everything after that point is somebody else's propellant budget.
+
+This report follows that budget from the parking orbit to the moment a robotic
+arm closes on a grapple fixture.
+
+\subsection{Scope and mission definition}
+
+Table~\ref{tab:mission} defines the case study. Both vehicles are on circular,
+equatorial, coplanar orbits about the Moon; the chaser is a lunar module (LM) at
+$100\unit{km}$ altitude, the target a mothership (MS) at $400\unit{km}$, leading
+by $\phi_0 = 10^\circ$ at the epoch.
+
+\begin{table}[htbp]
+\centering
+\caption{Mission definition and physical constants. Values are held in a single
+struct, \texttt{config/mission\_constants.m}; no physical number appears as a
+literal anywhere else in the code base.}
+\label{tab:mission}
+\small
+\begin{tabular}{llll}
+\toprule
+Quantity & Symbol & Value & Unit \\
+\midrule
+Lunar gravitational parameter & $\mu_M$    & $4902.8$   & km$^3$/s$^2$ \\
+Lunar mean radius             & $R_M$      & $1737.4$   & km \\
+Lunar oblateness              & $J_2$      & $2.033\times10^{-4}$ & -- \\
+Earth gravitational parameter & $\mu_E$    & $3.986\times10^{5}$  & km$^3$/s$^2$ \\
+Mean Earth--Moon distance     & $d_{EM}$   & $384\,400$ & km \\
+Chaser orbit radius           & $R_1$      & $1837.4$   & km \\
+Target orbit radius           & $R_2$      & $2137.4$   & km \\
+Initial target lead           & $\phi_0$   & $10$       & deg \\
+CR3BP mass parameter          & $\mu$      & $0.01215$  & -- \\
+Random seed                   & --         & $42$       & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The reference frame for the orbital work is Moon-centred inertial (MCI),
+equatorial, with $+z$ along the lunar north pole and motion counter-clockwise in
+the $xy$-plane. At $t = 0$ the chaser is on the $+x$ axis. Proximity operations
+use a local-vertical/local-horizontal frame attached to the target, defined
+carefully in Section~\ref{sec:proximity} because its handedness is the single
+most error-prone convention in the whole study.
+
+\subsection{What is modelled, and what is not}
+
+This is an engineering-faithful simulation of a restricted model. It is not a
+digital twin of any flown or planned mission, and it is worth being explicit
+about the boundary before presenting results.
+
+\emph{Modelled:} two-body dynamics with tangential impulsive manoeuvres; orbital
+phasing; linear and exact nonlinear relative motion; Cowell propagation with
+lunar $J_2$ and Earth third-body perturbation; the Earth--Moon circular
+restricted three-body problem; the kinematics and kineto-statics of a
+five-revolute manipulator on a controlled base.
+
+\emph{Not modelled:} the lunar gravity field beyond $J_2$, in particular the
+mass concentrations mapped by GRAIL \cite{zuber_grail} and the $C_{22}$
+ellipticity term; solar radiation pressure and eclipse cycling; finite-burn
+losses, propellant slosh and structural flexibility; orbital inclination and
+nodal regression; a near-rectilinear halo orbit in place of the circular target
+orbit; and the free-floating multi-body dynamics of the arm, whose inertia
+matrix and Coriolis terms are computed but never integrated. Section~\ref{sec:limits}
+returns to each of these and states what it would change.
+
+\subsection{Numerical approach and verification philosophy}
+
+Everything is implemented from first principles in MATLAB. The only solvers used
+are \texttt{ode45} for propagation and \texttt{fminsearch} for the three-body
+shooting problem; no MathWorks toolbox beyond base MATLAB is required, and no
+external ephemeris is read.
+
+The organising principle of the work is that a simulation is worth exactly as
+much as its verification. Each part therefore closes with a verification
+subsection stating what was compared against what. Three kinds of check are used
+throughout:
+
+\begin{enumerate}[label=(\roman*)]
+\item \textbf{Closed form.} Where an analytical solution exists it is
+      implemented independently and differenced against the numerical one. The
+      Kepler propagation check of Section~\ref{sec:transfer:verif} is the
+      strongest example.
+\item \textbf{Invariants.} Quantities the dynamics must conserve are monitored:
+      specific energy and angular momentum on each Keplerian leg, and the Jacobi
+      constant along the three-body arc.
+\item \textbf{Independent implementation.} Selected results are compared against
+      a separate implementation of the same mission geometry. Where the two
+      disagree, Section~\ref{sec:discussion:verif} says by how much and why,
+      rather than tuning one towards the other.
+\end{enumerate}
+
+A dedicated script, \texttt{tests/audit\_reference.m}, performs all of these
+automatically at the end of every build and writes a pass/warn/fail table. The
+results quoted throughout this report are the ones that script validated.

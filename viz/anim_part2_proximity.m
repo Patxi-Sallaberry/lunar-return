@@ -13,7 +13,7 @@ phases = struct( ...
     'title',  {'Uncorrected injection error, 3 mothership orbits', ...
                'Two-impulse HCW transfer to the 50 m hold point', ...
                'Forced straight-line docking, 5 legs plus brake'}, ...
-    'screen', {5, 6, 8});
+    'screen', {5, 6, 9});
 
 t = {D.t_drift, D.t_hold, D.t_dock};
 x = {D.x_hcw,   D.x_hold, D.x_dock};
@@ -57,7 +57,7 @@ fig = new_figure(C.videoRes(1), C.videoRes(2));
 ax = axes('Parent', fig, 'Position', [0.075 0.180 0.400 0.695]);
 style_axes(ax, '', 'x   V-bar [m]', 'z   R-bar [m]');
 axis(ax, 'equal');
-hPath = plot(ax, NaN, NaN, '-', 'Color', S.LM, 'LineWidth', 2.6);
+trPath = fading_trail(ax, S.LM, struct('tail', 320, 'lw', 3.4, 'ghost', 0.34));
 hHold = plot(ax, D.r_hold(1), D.r_hold(3), 'd', 'MarkerSize', 13, ...
              'MarkerFaceColor', S.hold, 'MarkerEdgeColor', 'none');
 hPort = plot(ax, 0, 0, 's', 'MarkerSize', 16, 'MarkerFaceColor', S.MS, ...
@@ -99,7 +99,7 @@ R = render_clip(fig, @frame, nF, '03_proximity', C);
             set(hHold, 'Visible', onoff(p >= 2));
         end
 
-        set(hPath,  'XData', xp(1,1:i), 'YData', xp(3,1:i));
+        update_trail(trPath, xp(1,:), xp(3,:), [], i);
         set(hChase, 'XData', xp(1,i),   'YData', xp(3,i));
         rng_m = sqrt(sum(xp(1:3,1:i).^2, 1));
         set(hRng, 'XData', tp(1:i), 'YData', max(rng_m, 1e-3));
@@ -107,20 +107,20 @@ R = render_clip(fig, @frame, nF, '03_proximity', C);
 
         kInPhase = k - find(plan(1,:) == p, 1) + 1;
         flash = '';
-        if kInPhase <= 14
+        if kInPhase <= 12
             flash = phases(p).name;
-        elseif p == 3 && k > nF - 14
+        elseif p == 3 && k > nF - 12
             flash = 'DOCK';
         end
 
         rate = tp(end) / phases(p).screen;
         if rng_m(end) >= 1000
-            rngStr = sprintf('%.2f km', rng_m(end)/1000);
+            rngStr = sprintf('%6.2f km', rng_m(end)/1000);
         else
-            rngStr = sprintf('%.2f m', rng_m(end));
+            rngStr = sprintf('%6.2f m', rng_m(end));
         end
         hud_set(hud, {hms(tp(i)), rngStr, sprintf('%.3f m/s', dv{p}(i)), ...
-                      sprintf('x %.0f', rate)}, ...
+                      sprintf('x%4.0f', rate)}, ...
                 {'PHASE TIME', 'RANGE', '\DeltaV USED', 'TIME RATE'}, flash);
     end
 end

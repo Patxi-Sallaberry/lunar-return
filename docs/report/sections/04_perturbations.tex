@@ -1,0 +1,200 @@
+\section{Perturbed dynamics}
+\label{sec:perturbations}
+
+\subsection{Purpose of the experiment}
+
+Sections~\ref{sec:transfer} and~\ref{sec:proximity} live in a pure two-body
+field. This part asks a specific operational question: if the manoeuvre plan is
+designed in that field and flown against a more complete one \emph{without
+retargeting}, how far off does it arrive? The answer sizes the mid-course
+correction that a real flight plan must carry.
+
+\subsection{Cowell formulation}
+
+Perturbations are added directly to the acceleration in Cartesian coordinates,
+
+\begin{equation}
+\ddot{\mathbf r} = -\mu_M\frac{\mathbf r}{r^3}
+                 + \mathbf a_{J_2}
+                 + \mathbf a_{3B}.
+\label{eq:cowell}
+\end{equation}
+
+The oblateness term is the standard second zonal harmonic \cite{vallado},
+
+\begin{equation}
+\mathbf a_{J_2} = \frac{3 J_2 \mu_M R_M^2}{2 r^4}
+\begin{bmatrix}
+\dfrac{x}{r}\left(5\dfrac{z^2}{r^2}-1\right)\\[8pt]
+\dfrac{y}{r}\left(5\dfrac{z^2}{r^2}-1\right)\\[8pt]
+\dfrac{z}{r}\left(5\dfrac{z^2}{r^2}-3\right)
+\end{bmatrix}.
+\label{eq:j2}
+\end{equation}
+
+The full three-component expression is retained even though the orbits are
+equatorial. At $z = 0$ it collapses correctly to a purely radial correction, so
+special-casing it would add a branch and remove a check.
+
+The Earth is included as a third body in Battin's difference form \cite{battin},
+
+\begin{equation}
+\mathbf a_{3B} = \mu_E\left(\frac{\mathbf r_E - \mathbf r}{\lVert \mathbf r_E - \mathbf r\rVert^3}
+                          - \frac{\mathbf r_E}{\lVert \mathbf r_E \rVert^3}\right),
+\label{eq:thirdbody}
+\end{equation}
+
+with the Earth on a circular path about the Moon at the synodic rate
+$n_{EM} = \sqrt{(\mu_M+\mu_E)/d_{EM}^3}$. The second term is the indirect part:
+it removes the acceleration of the origin, because the frame is Moon-centred and
+the Moon is itself falling towards the Earth. Dropping it is a classic error
+that inflates the computed effect by orders of magnitude; retaining it is what
+makes the $116\unit{m}$ result of Section~\ref{sec:perturbations:results}
+meaningful.
+
+\subsection{Acceleration budget}
+
+Before integrating anything it is worth knowing what matters.
+Table~\ref{tab:accel} evaluates the characteristic magnitudes at the chaser's
+orbit radius.
+
+\begin{table}[htbp]
+\centering
+\caption{Characteristic accelerations at $r = R_1 = 1837.4\unit{km}$. Oblateness
+dominates the perturbation budget by more than an order of magnitude over the
+Earth, which in turn dominates radiation pressure by two.}
+\label{tab:accel}
+\small
+\begin{tabular}{lrr}
+\toprule
+Source & Magnitude [m/s$^2$] & Ratio to central \\
+\midrule
+Central lunar attraction     & \mAkep  & $1$ \\
+Lunar $J_2$                  & \mAJtwo & $2.7\times10^{-4}$ \\
+Earth third body             & \mATB   & $1.8\times10^{-5}$ \\
+Solar radiation pressure (estimated) & $\sim 10^{-7}$ & $\sim 7\times10^{-8}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Radiation pressure is estimated rather than integrated. For an area-to-mass
+ratio of order $0.01\unit{m^2/kg}$ and a reflectivity near $1.3$, the cannonball
+acceleration at $1\unit{AU}$ is around $10^{-7}\unit{m/s^2}$. It is also
+intermittent: a $100\unit{km}$ lunar orbit has a period near two hours and spends
+roughly $30$--$40\%$ of each revolution in shadow, so the perturbation switches
+on and off rather than accumulating smoothly. Integrated over the
+$\mTmissionH\unit{h}$ mission the velocity change is of order
+$10^{-3}\unit{m/s}$, three orders below the correction $J_2$ already demands.
+The code carries a disabled flag for it and the omission is deliberate.
+
+\subsection{Why an equatorial orbit still feels $J_2$}
+
+For $z \equiv 0$ equation~\eqref{eq:j2} reduces to
+$\mathbf a_{J_2} = -\tfrac{3}{2}J_2\mu_M R_M^2 r^{-5}\,[x, y, 0]^\top$: a purely
+radial correction. It does not tilt the plane and it does not regress the node.
+What it does is stiffen the central field by a \emph{radius-dependent} amount,
+
+\begin{equation}
+\frac{\delta a_r}{a_r} = \frac{3}{2} J_2 \left(\frac{R_M}{r}\right)^2,
+\label{eq:j2ratio}
+\end{equation}
+
+which is $2.73\times10^{-4}$ at the chaser radius and $2.01\times10^{-4}$ at the
+target radius. A circular orbit responds with $\delta n/n = \tfrac12 \delta\mu_{\text{eff}}/\mu$,
+so the two vehicles accumulate \emph{different} along-track phase. Over ten and a
+half hours that difference is kilometres. The miss is therefore almost purely
+along-track, which is exactly what the simulation produces.
+
+\subsection{Results}
+\label{sec:perturbations:results}
+
+Both vehicles are propagated over the identical Part~1 timeline with the
+identical perturbed dynamics; only their initial states differ. The departure
+impulse keeps its Keplerian magnitude but is applied along the \emph{perturbed}
+velocity unit vector sampled at $t_{\text{wait}}$, which is what an open-loop
+vehicle would actually do. No retargeting is performed.
+
+\begin{table}[htbp]
+\centering
+\caption{Rendezvous miss at the nominal arrival epoch, flying the Keplerian plan
+against progressively more complete dynamics. The Keplerian control case through
+the identical code path closes to $5.6\times10^{-3}\unit{m}$, so the residuals
+below are physics and not integrator noise.}
+\label{tab:miss}
+\small
+\begin{tabular}{lrl}
+\toprule
+Dynamics & Miss & Unit \\
+\midrule
+Two-body (control case)              & $0.006$        & m \\
+Lunar $J_2$                          & \mMissJtwo     & km \\
+Lunar $J_2$ + Earth third body       & \mMissJtwoTB   & km \\
+\midrule
+Third-body contribution alone        & \mMissTB       & m \\
+Equivalent mid-course correction $\approx n_2\lVert\mathbf d\rVert$ & \mDVmcc & m/s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three readings follow. First, oblateness alone moves the meeting point by
+$\mMissJtwo\unit{km}$ -- far beyond any docking corridor, and the reason a real
+plan carries a correction. Second, the Earth contributes only $\mMissTB\unit{m}$
+of that: at $100$--$400\unit{km}$ altitude the vehicle is deep enough in the
+lunar well that Earth tides are a hundred times smaller than lunar oblateness.
+Third, removing the miss over roughly one orbit costs about $\mDVmcc\unit{m/s}$,
+some $9\%$ of the nominal transfer budget. That is a realistic mid-course
+allocation for a design of this fidelity.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{fig11_j2_vs_kepler.png}
+\caption{Keplerian design (solid) against the same plan flown with lunar $J_2$
+(dashed). The tracks are visually indistinguishable for ten hours; the inset
+resolves the arrival neighbourhood, where the accumulated along-track phase slip
+has become a $\mMissJtwo\unit{km}$ miss.}
+\label{fig:j2}
+\end{figure}
+
+\subsection{Element histories}
+
+Classical elements are extracted along the perturbed trajectories with a
+degeneracy-safe conversion: the orbits are simultaneously circular and
+equatorial, so both the node vector and the eccentricity vector vanish. The
+implementation falls back on the true longitude, taking the node along $+x$ when
+$\lVert\mathbf n\rVert$ is below a scale-aware threshold and folding the
+argument of periapsis into the argument of latitude when $e < 10^{-8}$. Without
+that guard the conversion returns noise for precisely the orbits this mission
+uses.
+
+\subsection{Mitigation, and what was deliberately not implemented}
+
+Three standard responses exist and are worth naming even though only the third
+is quantified here.
+
+\emph{Frozen orbits.} Choosing eccentricity and argument of periapsis so that
+the secular $J_2$ rates cancel removes most of the drift for the target. Under
+the real lunar field, dominated by mass concentrations rather than a clean
+$J_2$, this becomes a numerical search rather than a closed form
+\cite{zuber_grail}, and it is out of scope here.
+
+\emph{Co-elliptic rendezvous.} Flying the approach on orbits of equal period
+rather than equal shape makes the relative geometry insensitive to a
+common-mode field error.
+
+\emph{Mid-course correction.} The direct answer, budgeted above at
+$\mDVmcc\unit{m/s}$.
+
+\subsection{Verification}
+
+The acceleration magnitudes of Table~\ref{tab:accel} are re-derived
+independently in the audit script from the raw constants and agree to better
+than $2\%$ with the closed-form expectations $\mu/R_1^2$,
+$\tfrac32 J_2\mu R_M^2/R_1^4$ and $2\mu_E R_1/d_{EM}^3$. A factor of $10^3$ in
+the $J_2$ row would indicate a kilometre/metre unit error; none is present.
+
+The third-body contribution of $\mMissTB\unit{m}$ agrees with an independent
+implementation to $0.2\%$, which is a stringent test of both the indirect term
+in~\eqref{eq:thirdbody} and the Earth ephemeris rate. The $J_2$ miss agrees to
+$4\%$; Section~\ref{sec:discussion:verif} explains why a quantity built from the
+difference of two nearly equal secular slips is intrinsically that sensitive,
+and why the discrepancy was documented rather than tuned away.

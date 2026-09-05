@@ -1,0 +1,132 @@
+\section{Three-body verification of the transfer}
+\label{sec:cr3bp}
+
+\subsection{Motivation}
+
+Section~\ref{sec:perturbations} treated the Earth as a perturbation on a
+Moon-centred two-body problem. This part removes that hierarchy and re-solves
+the transfer with both primaries on an equal footing, in the Earth--Moon
+circular restricted three-body problem. The purpose is not a prettier
+trajectory -- it is visually identical -- but a bound on the modelling error of
+the two-body design.
+
+\subsection{Formulation}
+
+In the synodic frame, rotating with the primaries at unit rate and scaled so
+that the Earth sits at $x = -\mu$ and the Moon at $x = 1-\mu$ with
+$\mu = 0.01215$, the equations of motion are \cite{szebehely}
+
+\begin{align}
+\ddot x &= 2\dot y + x - \frac{(1-\mu)(x+\mu)}{r_1^3} - \frac{\mu(x-1+\mu)}{r_2^3},\label{eq:cr3bpx}\\
+\ddot y &= -2\dot x + y - \frac{(1-\mu)y}{r_1^3} - \frac{\mu y}{r_2^3},\label{eq:cr3bpy}\\
+\ddot z &= -\frac{(1-\mu)z}{r_1^3} - \frac{\mu z}{r_2^3},\label{eq:cr3bpz}
+\end{align}
+
+with $r_1$ and $r_2$ the distances to Earth and Moon. Length is scaled by
+$LU = d_{EM}$ and time by $TU = \sqrt{LU^3/(\mu_E+\mu_M)} = 375\,191\unit{s}$,
+giving a velocity unit $VU = 1.0245\unit{km/s}$.
+
+\subsection{Frame conversion}
+
+Converting a Moon-centred inertial state into this frame takes three steps, in
+order: rotate the components into the frame whose $+x$ is the Earth-to-Moon
+line; translate the origin from the Moon to the barycentre and rescale; then
+subtract the frame rotation and add the Moon's own inertial velocity, which in
+these units is $[0, 1-\mu, 0]^\top$. Writing $\alpha$ for the inertial longitude
+of the Earth-to-Moon direction,
+
+\begin{equation}
+\mathbf r_{\text{syn}} = R_z(-\alpha)\frac{\mathbf r_{MCI}}{LU} + \begin{bmatrix}1-\mu\\0\\0\end{bmatrix},
+\qquad
+\mathbf v_{\text{syn}} = R_z(-\alpha)\frac{\mathbf v_{MCI}}{VU} + \begin{bmatrix}0\\1-\mu\\0\end{bmatrix}
+                        - \hat{\mathbf z}\times\mathbf r_{\text{syn}} .
+\label{eq:syn}
+\end{equation}
+
+The $(1-\mu)$ that looks mysterious in component form is simply the Moon's
+velocity about the barycentre. The conversion is unit-tested by an
+unambiguous case: a body at rest at the Moon's centre must have exactly zero
+synodic velocity, because in the rotating frame the Moon does not move. The
+implementation returns zero to machine precision, and the Earth lands at
+$x = -\mu$ to $1.7\times10^{-16}$.
+
+Consistency with Section~\ref{sec:perturbations} is maintained by deriving
+$\alpha$ from the same Earth ephemeris used there, so the two perturbation
+studies describe the same geometry rather than two different ones.
+
+\subsection{Single shooting}
+
+The decision vector is $\mathbf p = [\delta v_x, \delta v_y, t_f]$ in synodic
+non-dimensional units, initialised from the two-body design of
+Section~\ref{sec:transfer}. Both vehicles are propagated with
+\eqref{eq:cr3bpx}--\eqref{eq:cr3bpz} and the cost is the Euclidean miss at $t_f$,
+minimised with Nelder--Mead.
+
+One subtlety deserves a note. The problem is planar, so the miss has only two
+independent components against three decision variables: the zero-miss set is a
+\emph{curve}, not a point. An unregularised optimiser wanders along that curve
+and reports an arbitrary member of a family, each with a slightly different
+$\dv$ and time of flight. A small penalty on the distance from the two-body
+guess is therefore added, weighted so that it can never dominate the miss term
+-- a $1\%$ deviation costs one centimetre of apparent miss. The reported
+correction is then the \emph{smallest} one on that curve, which is the only
+version of the number that means anything.
+
+\subsection{Results}
+
+\begin{table}[htbp]
+\centering
+\caption{Two-body design against the CR3BP solution. The correction is
+millimetres per second on a $118.80\unit{m/s}$ budget: a relative effect of
+order $10^{-4}$.}
+\label{tab:cr3bp}
+\small
+\begin{tabular}{lrrr}
+\toprule
+Quantity & Two-body & CR3BP & $|\Delta|$ \\
+\midrule
+$\dv_1$ [km/s]  & $0.060524$ & $0.060522$ & $0.000002$ \\
+$\dv_2$ [km/s]  & $0.058276$ & $0.058269$ & $0.000007$ \\
+$\dv_{\text{tot}}$ [km/s] & $0.118800$ & $0.118791$ & $\mCRextra\times10^{-6}$ \\
+Time of flight [s] & \mTOF & \mCRtof & $\mCRtofShift$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The shooter converges to a miss of $\mCRmiss\unit{m}$, and the total correction
+to the two-body design is $\mCRextra\unit{mm/s}$ with a time-of-flight shift of
+$\mCRtofShift\unit{s}$, i.e.\ $0.02\%$ of the coast.
+
+The operational conclusion is worth stating plainly, because it justifies the
+whole two-body approach of the preceding sections: a $100$--$400\unit{km}$ lunar
+orbit sits deep enough in the lunar potential well that including the Earth as a
+full primary changes the impulsive budget by millimetres per second. That is
+below the noise of any realistic navigation solution. The three-body model is
+the right tool for a translunar cruise or a halo orbit; for this mission it
+confirms rather than corrects.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{fig16_cr3bp_transfer.png}
+\caption{Optimised transfer in the Earth--Moon synodic frame, Moon-centred view.
+The arc is the same climb as Figure~\ref{fig:geometry} seen from a rotating
+frame. Right: range history and the correction relative to the two-body design,
+in millimetres per second.}
+\label{fig:cr3bp}
+\end{figure}
+
+\subsection{Verification}
+
+The CR3BP admits no energy integral, but the Jacobi constant
+
+\begin{equation}
+C_J = 2\left[\frac{x^2+y^2}{2} + \frac{1-\mu}{r_1} + \frac{\mu}{r_2}\right] - v^2
+\label{eq:jacobi}
+\end{equation}
+
+is exactly conserved along any ballistic arc. Evaluated along the optimised
+transfer it drifts by $9\times10^{-13}$ relative, a pure measure of integration
+quality that is independent of every other check in this report.
+
+The frame conversion is verified by the three cases listed above, and the
+round trip inertial $\to$ synodic $\to$ inertial closes to $10^{-11}$.

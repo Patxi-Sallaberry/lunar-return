@@ -139,14 +139,40 @@ metrics.nFigures = numel(figs);
 metrics.nClips = numel(clips);
 if isempty(clips)
     metrics.reelSeconds = 0;
+    metrics.showreelSeconds = 0;
 else
     metrics.reelSeconds = sum([clips.seconds]);
+    % The showreel is the seven numbered clips only; 06b is supplementary.
+    inReel = ~cellfun(@isempty, regexp({clips.name}, '^0[1-7]_', 'once'));
+    metrics.showreelSeconds = sum([clips(inReel).seconds]);
 end
 metrics.elapsedSeconds = toc(tStart);
 
 save(fullfile(C.resDir, 'metrics.mat'), 'metrics');
-write_metrics_json(fullfile(C.resDir, 'metrics.json'), metrics);
+write_metrics_json(fullfile(C.resDir, 'metrics.json'), metrics, C.root);
 write_build_report(C, report, clips, ffm, metrics);
+
+% ================================================================ AUDIT =====
+% Run last, so it audits the metrics this build just produced rather than a
+% stale file. It never throws: a broken audit must not fail the build, it must
+% report that it is broken.
+if ~C.skipAudit
+    fprintf('\n');
+    try
+        auditOK = audit_reference(C);
+        if auditOK
+            fprintf('  Audit: no FAIL. See results/AUDIT_REPORT.md\n');
+        else
+            fprintf('  Audit: at least one FAIL. See results/AUDIT_REPORT.md\n');
+        end
+        metrics.auditPassed = auditOK;
+    catch ME
+        fprintf('  [warn] audit could not run: %s\n', ME.message);
+        metrics.auditPassed = false;
+    end
+    save(fullfile(C.resDir, 'metrics.mat'), 'metrics');
+    write_metrics_json(fullfile(C.resDir, 'metrics.json'), metrics, C.root);
+end
 
 % =============================================================== BANNER =====
 fprintf('\n');
@@ -160,8 +186,8 @@ fprintf('Dock dV            = %8.3f m/s\n',  getd(metrics,'dV_dock_ms'));
 fprintf('CR3BP extra dV     = %8.2f mm/s\n', getd(metrics,'dV_extra_mms'));
 fprintf('IK pos residual    = %8.2f mm\n',   getd(metrics,'ik_res_mm'));
 fprintf('Figures written    = %8d\n',        metrics.nFigures);
-fprintf('Video written      = %8.1f s in %d clips (showreel = 7 of them)\n', ...
-        metrics.reelSeconds, numel(clips));
+fprintf('Showreel           = %8.1f s (%d clips rendered in total)\n', ...
+        metrics.showreelSeconds, numel(clips));
 fprintf('Elapsed            = %8s\n',        mmss(metrics.elapsedSeconds));
 fprintf('======================================================\n');
 fprintf('Report: results/BUILD_REPORT.md\n\n');
@@ -198,34 +224,6 @@ end
 
 function s = mmss(t)
 s = sprintf('%02d:%02d', floor(t/60), round(mod(t,60)));
-end
-
-function write_metrics_json(path, m)
-%WRITE_METRICS_JSON  Hand-rolled JSON so no toolbox is required.
-f = fieldnames(m);
-fid = fopen(path, 'w');
-fprintf(fid, '{\n');
-first = true;
-for k = 1:numel(f)
-    v = m.(f{k});
-    if ischar(v) || isstring(v)
-        str = sprintf('"%s"', strrep(char(v), '"', '\"'));
-    elseif islogical(v) && isscalar(v)
-        if v, str = 'true'; else, str = 'false'; end
-    elseif isnumeric(v) && isscalar(v)
-        if isfinite(v), str = sprintf('%.10g', v); else, str = 'null'; end
-    elseif isnumeric(v) && isvector(v) && numel(v) <= 12
-        str = ['[' strtrim(sprintf('%.10g, ', v))];
-        str = [str(1:end-1) ']'];
-    else
-        continue
-    end
-    if ~first, fprintf(fid, ',\n'); end
-    fprintf(fid, '  "%s": %s', f{k}, str);
-    first = false;
-end
-fprintf(fid, '\n}\n');
-fclose(fid);
 end
 
 function write_build_report(C, report, clips, ffm, m)

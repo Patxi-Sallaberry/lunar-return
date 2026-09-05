@@ -8,7 +8,7 @@ function R = anim_part5_cr3bp(C)
 D = load(fullfile(C.resDir, 'traj_part5.mat'));
 S = style();
 
-screen_s = 10;
+screen_s = 11;
 nF = round(screen_s * C.videoFps);
 iL = round(linspace(1, size(D.x_syn_LM, 2), nF));
 iM = round(linspace(1, size(D.x_syn_MS, 2), nF));
@@ -24,8 +24,8 @@ style_axes(ax, '', 'x_{syn} [km]', 'y_{syn} [km]');
 axis(ax, 'equal');
 draw_moon(ax, D.RMoon);
 plot(ax, D.ms_ring(1,:), D.ms_ring(2,:), '-', 'Color', [S.MS 0.45], 'LineWidth', 1.4);
-hTr = plot(ax, NaN, NaN, '-', 'Color', S.transfer, 'LineWidth', 3.2);
-hMs = plot(ax, NaN, NaN, '-', 'Color', [S.MS 0.85], 'LineWidth', 2.0);
+trTr = fading_trail(ax, S.transfer, struct('tail', 120, 'lw', 3.8, 'ghost', 0.60));
+trMs = fading_trail(ax, S.MS,       struct('tail', 120, 'lw', 2.6, 'ghost', 0.32));
 hL  = plot(ax, NaN, NaN, 'o', 'MarkerSize', 12, 'MarkerFaceColor', S.LM, 'MarkerEdgeColor','none');
 hM  = plot(ax, NaN, NaN, 's', 'MarkerSize', 13, 'MarkerFaceColor', S.MS, 'MarkerEdgeColor','none');
 quiver(ax, 0, 0, -1500, 0, 0, 'Color', S.third, 'LineWidth', 2.4, 'MaxHeadSize', 0.4);
@@ -58,8 +58,8 @@ R = render_clip(fig, @frame, nF, '05_cr3bp', C);
 
 % ------------------------------------------------------------------ frame --
     function frame(k)
-        set(hTr, 'XData', D.x_syn_LM(1,1:iL(k)), 'YData', D.x_syn_LM(2,1:iL(k)));
-        set(hMs, 'XData', D.x_syn_MS(1,1:iM(k)), 'YData', D.x_syn_MS(2,1:iM(k)));
+        update_trail(trTr, D.x_syn_LM(1,:), D.x_syn_LM(2,:), [], iL(k));
+        update_trail(trMs, D.x_syn_MS(1,:), D.x_syn_MS(2,:), [], iM(k));
         set(hL,  'XData', D.x_syn_LM(1,iL(k)),   'YData', D.x_syn_LM(2,iL(k)));
         set(hM,  'XData', D.x_syn_MS(1,iM(k)),   'YData', D.x_syn_MS(2,iM(k)));
         set(hR,  'XData', tL(1:k)/60, 'YData', max(rangeKm(1:k), 1e-2));
@@ -74,9 +74,9 @@ R = render_clip(fig, @frame, nF, '05_cr3bp', C);
         if k > nF - 16
             flash = sprintf('MISS  %.1f m', D.miss_km*1e3);
         end
-        hud_set(hud, {hms(tL(k)), sprintf('%.1f km', rangeKm(k)), ...
-                      sprintf('%.1f m/s', (D.dV1 + D.dV2*(k==nF))*1e3), ...
-                      sprintf('x %.0f', D.tof_s/screen_s)}, ...
+        hud_set(hud, {hms(tL(k)), sprintf('%7.1f km', rangeKm(k)), ...
+                      sprintf('%5.1f m/s', (D.dV1 + D.dV2*(k==nF))*1e3), ...
+                      sprintf('x%4.0f', D.tof_s/screen_s)}, ...
                 {'TRANSFER TIME', 'RANGE', '\DeltaV USED', 'TIME RATE'}, flash);
     end
 end

@@ -1,0 +1,153 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Consolidated results}
+
+\begin{table}[htbp]
+\centering
+\caption{Headline results. Every value is read from the simulation output at
+compile time, so this table cannot drift out of step with the code.}
+\label{tab:summary}
+\small
+\begin{tabular}{llr}
+\toprule
+Phase & Quantity & Value \\
+\midrule
+Transfer   & Total impulsive $\dv$              & $\mDVtot\unit{m/s}$ \\
+           & Phasing wait                       & $\mTwaitH\unit{h}$ \\
+           & Mission duration                   & $\mTmissionH\unit{h}$ \\
+           & Numerical vs analytical error      & $\mKeplerErrMm\unit{mm}$ \\
+\midrule
+Proximity  & Injection error                    & $\mDrZero\unit{m}$, $\mDvZero\unit{m/s}$ \\
+           & Uncorrected drift, 3 orbits        & $\mDriftKm\unit{km}$ \\
+           & Hold acquisition $\dv$             & $\mDVhold\unit{m/s}$ \\
+           & Docking $\dv$                      & $\mDVdock\unit{m/s}$ \\
+           & Linearisation error, 3 orbits      & $\mNlSep\unit{m}$ \\
+\midrule
+Perturbed  & $J_2$ miss, no retargeting         & $\mMissJtwo\unit{km}$ \\
+           & Third-body contribution            & $\mMissTB\unit{m}$ \\
+           & Mid-course correction budget       & $\mDVmcc\unit{m/s}$ \\
+\midrule
+CR3BP      & Converged miss                     & $\mCRmiss\unit{m}$ \\
+           & Correction to the two-body design  & $\mCRextra\unit{mm/s}$ \\
+\midrule
+Robotics   & Reach, 5R                          & $\mReach\unit{m}$ \\
+           & Peak joint torque at $100\unit{N}$ & $\mTauMax\unit{N\,m}$ \\
+           & IK position residual               & $\mIKres\unit{mm}$ in $\mIKiters$ iterations \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Verification summary, including what disagrees}
+\label{sec:discussion:verif}
+
+An automated audit re-derives every design scalar in closed form from the raw
+constants and compares the rest against an independent implementation of the
+same mission geometry. It records $60$ passes, one warning and no failures. The
+three results worth discussing are the ones that did not match exactly.
+
+\paragraph{Docking $\dv$: $\mDVdock$ against $0.1567\unit{m/s}$ ($0.02\%$).}
+The forced \vbar{} profile is almost pure geometry, so agreement at this level
+means the leg targeting, waypoint spacing and braking impulse are modelled
+identically. This is the strongest single confirmation that the proximity module
+is faithful.
+
+\paragraph{Third body: $\mMissTB$ against $116.0\unit{m}$ ($0.2\%$).}
+Agreement at this level on a $116\unit{m}$ effect tests two things that are easy
+to get wrong: the retention of the indirect term in~\eqref{eq:thirdbody}, and
+the use of the synodic rate for the Earth ephemeris. Dropping the indirect term
+inflates the number by orders of magnitude, so a match this tight is real
+evidence rather than a coincidence.
+
+\paragraph{$J_2$ miss: $\mMissJtwo\unit{km}$ against $14.56\unit{km}$ ($+4\%$).}
+The four plausible causes were checked in the source rather than assumed: the
+departure impulse is applied along the perturbed velocity, the target is
+propagated with the same perturbed dynamics as the chaser, the full
+three-component $J_2$ formula is used, and the Keplerian control case through
+the identical code path closes to $5.6\times10^{-3}\unit{m}$. None is at fault.
+The residual is sensitivity, not error. The miss is a \emph{difference} of two
+nearly equal secular phase slips accumulated over ten and a half hours, so it
+inherits the sensitivity of both to the exact burn epoch and to the integrator
+tolerance. Two correct implementations agreeing to $4\%$ on such a quantity is
+the expected outcome, and the discrepancy was documented rather than removed.
+
+\paragraph{CR3BP correction: $\mCRextra\unit{mm/s}$ against $1.5\unit{mm/s}$.}
+The single warning. As explained in Section~\ref{sec:cr3bp}, the planar shooting
+problem is rank-deficient by one, so the zero-miss set is a curve and different
+optimiser starts land at different points on it. Both figures support the same
+operational statement -- Earth tides move this budget by millimetres per second
+-- and forcing agreement would be curve-fitting rather than physics.
+
+\paragraph{Hold $\dv$: $\mDVhold$ against $1.4\unit{m/s}$.}
+Not comparable: the injection error is a random draw and the two runs use
+different realisations. Fed the reference draw, our targeting returns
+$1.419\unit{m/s}$, reproducing the reference to $1.4\%$. That test is also what
+settles the frame convention of Section~\ref{sec:proximity:frame}.
+
+\subsection{Limitations}
+\label{sec:limits}
+
+This is an engineering-faithful simulation of a restricted model. The following
+would each change a specific number, and are named so that no reader has to
+discover them.
+
+\begin{itemize}
+\item \textbf{Equatorial, coplanar orbits only.} No inclination difference and no
+      relative right ascension, so the out-of-plane budget that dominates real
+      rendezvous planning never appears. This is the single largest omission.
+\item \textbf{Gravity stops at $J_2$.} The real lunar field is dominated by mass
+      concentrations rather than a clean oblateness term \cite{zuber_grail}, and
+      the $C_{22}$ ellipticity is comparable to $J_2$ for some geometries. Low
+      lunar orbits are genuinely unstable over weeks under the true field.
+      Nothing here runs that long, but the frozen-orbit design a real mission
+      would use is a numerical search this model cannot support.
+\item \textbf{No solar radiation pressure.} Estimated at $10^{-7}\unit{m/s^2}$
+      and excluded with the reasoning given in Section~\ref{sec:perturbations};
+      the flag exists but no cannonball model is wired in.
+\item \textbf{Impulsive burns.} Finite-burn losses, throttle profiles, attitude
+      slews and propellant slosh are all absent. For a $60\unit{m/s}$ impulse the
+      gravity loss is small, but it is not zero.
+\item \textbf{Circular target orbit, not a halo.} A realistic Artemis-era
+      architecture places the mothership in a near-rectilinear halo orbit, where
+      the rendezvous geometry and the phasing analysis are qualitatively
+      different problems.
+\item \textbf{The arm is kinematic and static.} Five degrees of freedom, a base
+      held fixed by assumption, no joint flexibility, no contact dynamics, and no
+      free-floating momentum coupling. The local frame is treated as inertial
+      during berthing.
+\item \textbf{One random draw.} The injection error is a single realisation, not
+      a Monte Carlo campaign. The proximity $\dv$ figures are therefore one
+      sample of a distribution whose spread is not characterised.
+\end{itemize}
+
+\subsection{Conclusions}
+
+Three results are worth carrying away.
+
+First, the propellant cost of this return phase is dominated by the transfer,
+not by the corrections: $\mDVtot\unit{m/s}$ for the Hohmann climb against
+$\mDVprox\unit{m/s}$ for all proximity operations, roughly $1\%$. What the
+ascent dispersion actually costs is small, provided it is corrected early.
+
+Second, the binding constraint is time, not propellant. The transfer lasts
+$66$ minutes; waiting for the phasing window takes $\mTwaitH$ hours. Any
+architecture that needs a fast return has to buy it with a non-Hohmann transfer,
+and the CR3BP analysis shows that the extra energy will not come from
+three-body effects at this altitude.
+
+Third, the perturbation that matters at $100$--$400\unit{km}$ is lunar
+oblateness, not the Earth. $J_2$ displaces the meeting point by
+$\mMissJtwo\unit{km}$ and demands a $\mDVmcc\unit{m/s}$ mid-course correction;
+the Earth contributes $\mMissTB\unit{m}$ and the full three-body treatment
+changes the budget by $\mCRextra\unit{mm/s}$. Effort spent modelling the Earth
+here is effort not spent on the lunar field, which is the opposite of the
+intuition one brings from Earth orbit.
+
+\subsection{Reproducibility}
+
+The complete simulation runs unattended from a single command and takes about
+ten minutes, of which roughly one is physics and the rest is rendering. It
+requires base MATLAB only: no toolbox, no external ephemeris, no downloaded
+imagery. All results in this report, including every figure, were produced by
+the run whose audit table is reproduced in the repository as
+\texttt{results/AUDIT\_REPORT.md}.

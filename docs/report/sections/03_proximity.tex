@@ -1,0 +1,192 @@
+\section{Relative dynamics and proximity operations}
+\label{sec:proximity}
+
+\subsection{The injection error is the whole point}
+
+The rendezvous of Section~\ref{sec:transfer} closes to a fraction of a
+millimetre, which no ascent stage has ever achieved. The dispersion listed in
+Section~1.1 -- single-string propulsion, thrust-to-centre-of-mass misalignment,
+active-only attitude control, migrating inertia -- arrives at the top of the
+climb as a position and velocity offset. This part models that offset explicitly
+and prices its removal.
+
+The error is drawn once from a seeded generator: a random direction with
+magnitude uniform in $[500, 1000]\unit{m}$ for position and $[0.1, 1]\unit{m/s}$
+for velocity. The realisation used throughout is
+$\lVert\delta\mathbf r_0\rVert = \mDrZero\unit{m}$ and
+$\lVert\delta\mathbf v_0\rVert = \mDvZero\unit{m/s}$. The seed, not the numbers,
+is the reproducibility mechanism.
+
+\subsection{Frame definition, and the sign trap inside it}
+\label{sec:proximity:frame}
+
+Relative motion is expressed in a local frame attached to the target. This
+report uses
+
+\begin{equation}
+\hat{\mathbf x} = -\hat{\mathbf v}, \qquad
+\hat{\mathbf y} = -\hat{\mathbf h}, \qquad
+\hat{\mathbf z} = +\hat{\mathbf r},
+\label{eq:lvlh}
+\end{equation}
+
+that is, $x$ along the \vbar{} measured positive \emph{astern} of the target,
+$y$ cross-track along the negative orbit normal, and $z$ along the \rbar{},
+positive outward. The triad is right-handed, since
+$\hat{\mathbf x}\times\hat{\mathbf y} = (-\hat{\mathbf v})\times(-\hat{\mathbf h})
+= \hat{\mathbf v}\times\hat{\mathbf h} = \hat{\mathbf r}$.
+
+Two remarks justify what looks at first like a perverse choice. Operationally,
+\vbar{} range is quoted astern: a ``$50\unit{m}$ \vbar{} hold'' is $50\unit{m}$
+behind the target, and the approach then walks $x$ from $+50\unit{m}$ down to
+zero at the port. Mathematically, the price is that the target's angular
+velocity is $-n$ about the frame's own $y$ axis, which flips the sign of every
+Coriolis term relative to the textbook radial/along-track ordering. Linearising
+about a circular chief \cite{cw1960,fehse} gives
+
+\begin{align}
+\ddot x - 2n\dot z &= 0, \label{eq:hcw1}\\
+\ddot y + n^2 y &= 0, \label{eq:hcw2}\\
+\ddot z + 2n\dot x - 3n^2 z &= 0. \label{eq:hcw3}
+\end{align}
+
+This is exactly where a sign error hides most comfortably: copy a state
+transition matrix written for $x$ radial, label the axes \vbar{} and \rbar{}, and
+the free-drift plot still looks plausible while every targeting solution is
+quietly wrong. The convention was therefore settled empirically rather than
+asserted. Section~\ref{sec:discussion:verif} reports the test: fed an
+independent implementation's injection error, the targeting of
+Section~\ref{sec:proximity:hold} reproduces that implementation's $\dv$ to
+$1.4\%$, whereas the mirrored convention does not.
+
+A physical check completes the argument. Release the chaser $100\unit{m}$
+radially outward at zero relative velocity: it is on a higher, slower orbit and
+must fall behind. The state transition matrix returns $x = +11.3\unit{km}$ after
+three orbits, and since $+x$ is astern, it has indeed fallen behind. Reading
+$+x$ as ``ahead'' is the trap; the sign is correct once the axis direction is
+stated.
+
+\subsection{State transition matrix}
+
+With $\tau = nt$ and the state $\delta\mathbf x = [x\ y\ z\ \dot x\ \dot y\ \dot z]^\top$,
+equations~\eqref{eq:hcw1}--\eqref{eq:hcw3} integrate in closed form to
+$\delta\mathbf x(t) = \Phi(t)\,\delta\mathbf x(0)$ with
+
+\begin{equation}
+\Phi(t) =
+\begin{bmatrix}
+1 & 0 & 6(\tau-\sin\tau) & \frac{4\sin\tau-3\tau}{n} & 0 & \frac{2(1-\cos\tau)}{n}\\[2pt]
+0 & \cos\tau & 0 & 0 & \frac{\sin\tau}{n} & 0\\[2pt]
+0 & 0 & 4-3\cos\tau & \frac{2(\cos\tau-1)}{n} & 0 & \frac{\sin\tau}{n}\\[2pt]
+0 & 0 & 6n(1-\cos\tau) & 4\cos\tau-3 & 0 & 2\sin\tau\\[2pt]
+0 & -n\sin\tau & 0 & 0 & \cos\tau & 0\\[2pt]
+0 & 0 & 3n\sin\tau & -2\sin\tau & 0 & \cos\tau
+\end{bmatrix}.
+\label{eq:stm}
+\end{equation}
+
+Three properties are checked automatically: $\Phi(0) = I$ to machine precision;
+$\dot\Phi(0)$ equals the system matrix of the first-order form, which is what
+actually pins the Coriolis signs; and $\Phi(t)\Phi(-t) = I$.
+
+\subsection{Free drift}
+
+Propagating the injection error with no correction is instructive.
+Figure~\ref{fig:drift} shows the result over three target orbits: the
+out-of-plane component is a bounded harmonic at the orbital frequency, while the
+in-plane motion develops a secular along-track drift driven by the period
+mismatch. The separation reaches $\mDriftKm\unit{km}$.
+
+That number is the argument for active proximity operations in one line. A
+$0.88\unit{m/s}$ velocity error, roughly $0.05\%$ of orbital speed, becomes a
+$21\unit{km}$ miss within seven hours.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.78\textwidth]{fig06_free_drift_3d.png}
+\caption{Uncorrected injection error over three target orbits in the local
+frame. Starting from $\mDrZero\unit{m}$ and $\mDvZero\unit{m/s}$, the chaser
+drifts $\mDriftKm\unit{km}$ along-track. Cross-track motion stays bounded.}
+\label{fig:drift}
+\end{figure}
+
+\subsection{Two-impulse hold acquisition}
+\label{sec:proximity:hold}
+
+Partitioning~\eqref{eq:stm} into $3\times3$ blocks, the transfer from the
+injection state to a prescribed hold point in a prescribed time is a single
+linear solve:
+
+\begin{equation}
+\mathbf v_0^+ = \Phi_{rv}^{-1}\!\left(\mathbf r_{\text{hold}} - \Phi_{rr}\,\delta\mathbf r_0\right),
+\qquad
+\dv_1 = \mathbf v_0^+ - \delta\mathbf v_0,
+\label{eq:target1}
+\end{equation}
+\begin{equation}
+\dv_2 = \mathbf v_{\text{hold}} - \left(\Phi_{vr}\,\delta\mathbf r_0 + \Phi_{vv}\,\mathbf v_0^+\right).
+\label{eq:target2}
+\end{equation}
+
+The hold point is $\mathbf r_{\text{hold}} = [50, 0, 0]^\top\unit{m}$ and the
+transfer time $0.3\,T_{MS} = \mDtTr\unit{s}$. The cost is
+$\dv_{\text{hold}} = \mDVhold\unit{m/s}$, and propagating the resulting
+two-burn trajectory back through~\eqref{eq:stm} arrives within
+$10^{-13}\unit{m}$ of the target point.
+
+The block $\Phi_{rv}$ becomes singular whenever the transfer time approaches a
+multiple of the orbital period, because after a full revolution the initial
+velocity no longer controls the final position. Its condition number is
+therefore checked before every solve and the transfer time nudged by $1\%$ until
+the inversion is safe; at $0.3\,T_{MS}$ the reciprocal condition number is
+$0.21$, comfortably clear.
+
+\subsection{Forced straight-line \vbar{} approach}
+
+From the hold point the vehicle is walked to the port in $N = 5$ equal legs of
+$200\unit{s}$, each targeting the waypoint
+$\mathbf r_k = \mathbf r_{\text{hold}}(1 - k/N)$, followed by a braking impulse
+that nulls the residual velocity at contact. The total is
+$\dv_{\text{dock}} = \mDVdock\unit{m/s}$, and the trajectory terminates
+$3\times10^{-16}\unit{m}$ from the origin.
+
+This profile is not chosen for elegance. A sequence of short targeted hops keeps
+plume impingement away from the target, bounds the closing rate between
+checkpoints, and gives the crew or the ground a natural abort opportunity at
+every waypoint -- the pattern used on real \vbar{} approaches \cite{fehse}.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.93\textwidth]{fig08_forced_vbar_docking.png}
+\caption{Forced straight-line approach. Top: \vbar{} and \rbar{} components
+against time, with the six impulses marked. Bottom: the in-plane path from the
+$50\unit{m}$ hold to the docking port, total cost $\mDVdock\unit{m/s}$.}
+\label{fig:docking}
+\end{figure}
+
+The full proximity phase therefore costs $\mDVprox\unit{m/s}$, about $1\%$ of
+the $\mDVtot\unit{m/s}$ transfer budget. That is the price of the ascent
+dispersion, and it is only obtainable by modelling both phases in the same
+units.
+
+\subsection{Verification against the nonlinear equations}
+
+The linear model is finally checked against the exact nonlinear relative
+equations of motion for a circular chief, integrated with the same tolerances.
+Writing $\rho^2 = x^2+y^2+z^2$ and $r_c = \sqrt{x^2+y^2+(R_2+z)^2}$, and using
+the regularised form
+
+\begin{equation}
+q = \frac{\rho^2 + 2R_2 z}{R_2^2}, \qquad
+F = \frac{q\left(2 + q + \sqrt{1+q}\right)}{(1+q)^{3/2}\left(1+\sqrt{1+q}\right)},
+\label{eq:nonlin}
+\end{equation}
+
+avoids differencing two nearly equal inverse cubes, which matters when
+$\rho/R_2 \sim 10^{-5}$.
+
+The two models part company by $\mNlSep\unit{m}$ after three orbits at kilometre
+range -- about half a percent of the separation. At the $50\unit{m}$ hold point,
+where $\rho/R_2 = 2.3\times10^{-5}$, they agree to well under a millimetre. The
+linearisation is used exactly where it is valid, and the divergence at long
+range is quantified rather than assumed away.

@@ -89,7 +89,11 @@ C.odeWork  = odeset('RelTol', 1e-10, 'AbsTol', 1e-10);  % Parts 3 and 5
 
 % --------------------------------------------------------------- rendering --
 C.makeVideo   = true;
+C.skipAudit   = false;          % tests/audit_reference.m runs at the end of a build
+C.enableSRP   = false;          % cannonball SRP: estimated in docs, not integrated
+C.enableC22   = false;          % lunar ellipticity: out of scope, see the report
 C.videoFps    = 30;
+C.videoCRF    = 17;             % x264 quality for the delivery encode
 C.videoRes    = [1920 1080];
 C.previewFps  = 15;
 C.maxFramesPerClip = 900;

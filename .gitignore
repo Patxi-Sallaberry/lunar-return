@@ -8,6 +8,19 @@ results/video/clips/concat_list.txt
 # the README links to them and a reader should see the results without
 # installing MATLAB.
 
+# LaTeX build artefacts. The compiled PDF is committed under results/report/,
+# so nothing here is needed to read the report.
+docs/report/*.aux
+docs/report/*.log
+docs/report/*.out
+docs/report/*.toc
+docs/report/*.bbl
+docs/report/*.blg
+docs/report/*.fls
+docs/report/*.fdb_latexmk
+docs/report/*.synctex.gz
+docs/report/main.pdf
+
 # MATLAB scratch
 *.asv
 *.autosave

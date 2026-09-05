@@ -1,0 +1,44 @@
+\section*{Abstract}
+\addcontentsline{toc}{section}{Abstract}
+
+\noindent
+An ascent stage leaves the lunar surface, reaches a $100\unit{km}$ circular orbit
+with the dispersion that a single-string engine and a migrating centre of mass
+inevitably leave behind, and must reach a mothership $300\unit{km}$ higher and
+$10^\circ$ ahead. This report documents an end-to-end numerical simulation of
+that return phase, written from first principles in MATLAB using only
+\texttt{ode45} and \texttt{fminsearch}.
+
+Six coupled studies are presented. A Hohmann transfer between the two circular
+equatorial orbits is designed and phased, costing $\mDVtot\unit{m/s}$ after a
+$\mTwaitH\unit{h}$ wait for the launch window; the propagated trajectory is
+validated against a closed-form Kepler solution to $\mKeplerErrMm\unit{mm}$ over
+the full $\mTmissionH\unit{h}$ timeline. Relative motion at the rendezvous point
+is treated with the Hill--Clohessy--Wiltshire state transition matrix: an
+injection error of $\mDrZero\unit{m}$ and $\mDvZero\unit{m/s}$ grows into a
+$\mDriftKm\unit{km}$ drift within three orbits, is removed for $\mDVhold\unit{m/s}$
+onto a $50\unit{m}$ \vbar{} hold, and the vehicle is then walked to the docking
+port for a further $\mDVdock\unit{m/s}$. The same manoeuvre plan flown against a
+Cowell model with lunar $J_2$ and the Earth as a third body, deliberately without
+retargeting, misses the rendezvous by $\mMissJtwo\unit{km}$, of which the Earth
+contributes only $\mMissTB\unit{m}$; the corresponding mid-course correction
+budget is of order $\mDVmcc\unit{m/s}$. Re-converging the transfer by single
+shooting in the Earth--Moon circular restricted three-body problem closes the
+rendezvous to $\mCRmiss\unit{m}$ for a correction of $\mCRextra\unit{mm/s}$,
+confirming that a low lunar orbit sits deep enough in the lunar well for Earth
+tides to be operationally negligible. Finally a five-revolute free-flying
+manipulator of $\mReach\unit{m}$ reach is characterised: forward kinematics, the
+twist-propagation matrix, kineto-static duality giving joint torques up to
+$\mTauMax\unit{N\,m}$ under a $100\unit{N}$ berthing load, and a weighted damped
+least-squares inverse kinematics converging to $\mIKres\unit{mm}$ in
+$\mIKiters$ iterations.
+
+Every headline figure is cross-checked, either against a closed-form
+re-derivation from the raw constants or against an independent implementation of
+the same mission geometry. The verification results, including the two
+quantities that differ and why, are reported rather than smoothed over.
+
+\vspace{3mm}
+\noindent\textbf{Keywords:} lunar rendezvous, Hohmann transfer, orbital phasing,
+Clohessy--Wiltshire, Cowell propagation, $J_2$, circular restricted three-body
+problem, space manipulator, kineto-statics, damped least squares.
